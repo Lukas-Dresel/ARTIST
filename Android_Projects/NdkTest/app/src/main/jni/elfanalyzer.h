@@ -2,6 +2,7 @@
 #define _ELF_ANALYZER_H
 
 #include <elf.h>
+#include <errno.h>
 #include <stdbool.h>
 
 #include "logging.h"
@@ -25,6 +26,6 @@ enum SegmentType
     GCC_StackExecutability  = PT_GNU_STACK
 };
 
-void dumpElfInfo(JNIEnv* env, void* addr);
+void dumpElfInfo(JNIEnv* env, const void* addr);
 
 #endif

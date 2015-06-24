@@ -39,8 +39,6 @@ public class MainActivity extends Activity
         this.dumpProcAlignmentMap();
         this.dumpJEnvContent();
 
-        this.testBreakpointAtoi();
-
         try
         {
             MemoryInfo info = MemoryAnalyzer.getMemoryInfo();
@@ -48,8 +46,12 @@ public class MainActivity extends Activity
             JsonElement serialized = gson.toJsonTree(info.Regions);
             this.mOutput.setText(serialized.toString());
 
-            this.testHookingAtoi();
-            this.testHookingAndroidLogPrint();
+            this.testLibDLCapabilities();
+
+            this.testBreakpoint();
+
+            //this.testHookingAtoi();
+            //this.testHookingAndroidLogPrint();
         }
         catch (Exception ex)
         {
@@ -90,6 +92,8 @@ public class MainActivity extends Activity
 
     private native void testBreakpointAtoi();
 
+    private native void testBreakpoint();
+
     private native void testHookingAtoi();
 
     private native void testHookingAndroidLogPrint();
@@ -99,6 +103,10 @@ public class MainActivity extends Activity
     private native void dumpProcessMemoryMap();
 
     private native void dumpProcAlignmentMap();
+
+    private native void testLibDLCapabilities();
+
+    private native int AssemblyMultiplyDemo(int a, int b);
 
     private native void setMemoryProtection(long address, long size, boolean read, boolean write, boolean execute);
 

@@ -1,5 +1,5 @@
-#ifndef _HOOKING_ARM_HELPER_H
-#define _HOOKING_ARM_HELPER_H
+#ifndef _FUNCTION_INTERNALS_HELPER_ARM_H
+#define _FUNCTION_INTERNALS_HELPER_H
 
 #include <jni.h>
 #include <inttypes.h>
@@ -34,6 +34,17 @@ static inline bool setMemProtectFull(JNIEnv* env, void* address, jlong num)
     {
         LOGE("Failed to change protections of %lld bytes from address " PRINT_PTR ", error: %s", size, (uintptr_t)addrAligned, strerror(errno));
         throwNewJNIException(env, "java/lang/RuntimeException", "Failed to set memory protections.");
+        return false;
+    }
+    return true;
+}
+static inline bool setMemProtectFullPrimitive(void* address, jlong num)
+{
+    void* addrAligned = getPageBaseAddress(address);
+    jlong size = num + (address - addrAligned);
+
+    if(mprotect(addrAligned, size, PROT_READ|PROT_WRITE|PROT_EXEC) == -1)
+    {
         return false;
     }
     return true;

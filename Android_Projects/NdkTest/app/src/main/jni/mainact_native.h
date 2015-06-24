@@ -7,15 +7,19 @@
 #include <sys/mman.h>
 #include <errno.h>
 
+#include <signal.h>
+#include <ucontext.h>
+
+#include <dlfcn.h>
+
 #include <stdlib.h>
-
 #include <stdio.h>
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <inttypes.h>
 
 #include "config.h"
+#include "oatparse.h"
 
 #include "com_example_lukas_ndktest_MainActivity.h"
 

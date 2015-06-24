@@ -89,6 +89,14 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwrite
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpointAtoi
   (JNIEnv *, jobject);
 
+  /*
+   * Class:     com_example_lukas_ndktest_MainActivity
+   * Method:    testBreakpoint
+   * Signature: ()V
+   */
+  JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpoint
+    (JNIEnv *, jobject);
+
 /*
  * Class:     com_example_lukas_ndktest_MainActivity
  * Method:    testHookingAtoi
@@ -128,6 +136,22 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcessMe
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcAlignmentMap
   (JNIEnv *, jobject);
+
+/*
+ * Class:     com_example_lukas_ndktest_MainActivity
+ * Method:    testLibDLCapabilities
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testLibDLCapabilities
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_example_lukas_ndktest_MainActivity
+ * Method:    AssemblyMultiplyDemo
+ * Signature: (II)I
+ */
+JNIEXPORT jint JNICALL Java_com_example_lukas_ndktest_MainActivity_AssemblyMultiplyDemo
+  (JNIEnv *, jobject, jint, jint);
 
 /*
  * Class:     com_example_lukas_ndktest_MainActivity

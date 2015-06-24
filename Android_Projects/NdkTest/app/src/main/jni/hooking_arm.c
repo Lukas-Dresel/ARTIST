@@ -1,5 +1,4 @@
 #include "hooking_arm.h"
-#include "hooking_arm_helper.h"
 
 static struct list_head installed_function_hooks;
 static struct list_head enabled_function_hooks;
@@ -104,10 +103,10 @@ InlineFunctionHook* new_inline_function_hook ( JNIEnv* env, const unsigned char*
     // Preserve first bytes of function
     memcpy(hook->preserved_code, hook->target_function.memory_location, hook->overwrite_size);
     // Initialize Trampoline code
-    memcpy(hook->hook_code, (hook->target_function.uses_thumb_mode ? HOOK_CODE_THUMB : HOOK_CODE_ARM), hook->overwrite_size);
-    // Here we write our hook function address. The shellcodes are designed to have the same offset.
+    memcpy(hook->hook_code, (hook->target_function.uses_thumb_mode ? hook_stub_thumb : hook_stub_arm), hook->overwrite_size);
+    // Here we write our hook function address. The trampoline codes are designed to have the same offset.
 
-    void** addrTarget = (void**)(hook->hook_code + 8);
+    void** addrTarget = (void**)(hook->hook_code + 12);
     *addrTarget = hookAddress;
 
     list_add_tail(&hook->installed_entry, &installed_function_hooks);
@@ -170,12 +169,12 @@ bool patch_original_code ( InlineFunctionHook * hook, void* code, int size)
     LOGD("Patching Original Code for function \"%s\"("PRINT_PTR").", hook->target_function.name, (uintptr_t)hook->target_function.address);
 
     LOGD("Before: ");
-    hexdumpAligned(hook->env, "Hexdump", hook->preserved_code, hook->overwrite_size, 4);
+    hexdump_aligned(hook->env, hook->preserved_code, hook->overwrite_size, 16, 4);
 
     memcpy(hook->preserved_code, code, hook->overwrite_size);
 
     LOGD("After: ");
-    hexdumpAligned(hook->env, "Hexdump", hook->preserved_code, hook->overwrite_size, 4);
+    hexdump_aligned(hook->env, hook->preserved_code, hook->overwrite_size, 16, 4);
     return true;
 }
 

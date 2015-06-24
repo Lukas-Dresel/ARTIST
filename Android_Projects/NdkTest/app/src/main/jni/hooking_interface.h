@@ -18,6 +18,7 @@ struct InlineFunctionHook;
 typedef struct InlineFunctionHook InlineFunctionHook;
 
 void                    init_inline_function_hooking            ();
+void                    destroy_inline_function_hooking         ();
 
 InlineFunctionHook*     install_inline_function_hook            ( JNIEnv* env, const unsigned char* targetName, void* targetAddress, const unsigned char* hookName, void* hookAddress);
 bool                    enable_inline_function_hook             ( InlineFunctionHook * hook );
@@ -25,8 +26,6 @@ bool                    disable_inline_function_hook            ( InlineFunction
 bool                    uninstall_inline_function_hook          ( InlineFunctionHook * hook );
 
 bool                    patch_original_code                     ( InlineFunctionHook * hook, void* new_code, int size);
-
-void                    destroy_inline_function_hooking         ();
 
 void                    print_full_inline_function_hook_info    (JNIEnv* env);
 
