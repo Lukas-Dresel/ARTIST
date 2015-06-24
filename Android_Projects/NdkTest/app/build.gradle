@@ -6,24 +6,53 @@ android {
 
     defaultConfig {
         applicationId "com.example.lukas.ndktest"
-        minSdkVersion 21
-        targetSdkVersion 21
+        minSdkVersion 19
+        targetSdkVersion 19
         versionCode 1
         versionName "1.0"
 
         ndk {
             moduleName "NdkTest"
-            ldLibs "log"
-            cFlags "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast --std=gnu99"
+            ldLibs "log", "dl"
+            cFlags "-g -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast --std=gnu99 -O3 -mthumb"
+            android.buildTypes.debug.jniDebuggable true
         }
     }
 
+    //sourceSets.main {
+    //    jniLibs.srcDir 'src/main/libs'
+    //}
+    //sourceSets.main.jni.srcDirs = [] //disable automatic ndk-build call
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+
+    productFlavors {
+        x86 {
+            ndk {
+                abiFilter "x86"
+            }
+        }
+        mips {
+            ndk {
+                abiFilter "mips"
+            }
+        }
+        armv7 {
+            ndk {
+                abiFilter "armeabi-v7a"
+            }
+        }
+        arm {
+            ndk {
+                abiFilter "armeabi"
+            }
+        }
+        fat
     }
 }
 
