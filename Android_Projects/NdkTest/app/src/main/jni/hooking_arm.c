@@ -1,5 +1,6 @@
 #include "hooking_arm.h"
 #include "hooking_arm_helper.h"
+#include "memory.h"
 
 static struct list_head installed_function_hooks;
 static struct list_head enabled_function_hooks;
@@ -167,15 +168,15 @@ bool patch_original_code ( InlineFunctionHook * hook, void* code, int size)
         return false;
     }
 
-    LOGD("Patching Original Code for function \"%s\"("PRINT_PTR").", hook->target_function.name, (uintptr_t)hook->target_function.address);
+    LOGD("Patching Original Code for function \"%s\"(" PRINT_PTR ").", hook->target_function.name, (uintptr_t)hook->target_function.address);
 
     LOGD("Before: ");
-    hexdumpAligned(hook->env, "Hexdump", hook->preserved_code, hook->overwrite_size, 4);
+    hexdump_aligned(hook->env, "Hexdump", hook->preserved_code, hook->overwrite_size, 4);
 
     memcpy(hook->preserved_code, code, hook->overwrite_size);
 
     LOGD("After: ");
-    hexdumpAligned(hook->env, "Hexdump", hook->preserved_code, hook->overwrite_size, 4);
+    hexdump_aligned(hook->env, "Hexdump", hook->preserved_code, hook->overwrite_size, 4);
     return true;
 }
 

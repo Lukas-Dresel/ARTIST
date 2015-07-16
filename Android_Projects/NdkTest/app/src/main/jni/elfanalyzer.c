@@ -1,7 +1,7 @@
 #include "elfanalyzer.h"
 
 
-void dumpElf64Bytes(bool is64Bit, const unsigned char* name, void* addr, uint64_t numBytes)
+/*void dumpElf64Bytes(bool is64Bit, const unsigned char* name, void* addr, uint64_t numBytes)
 {
     hexdumpUnalignedPrimitive(name, addr, numBytes, 16);
 }
@@ -52,4 +52,4 @@ void dump64BitElfInfo(JNIEnv* env, void* hdr)
 void dump32BitElfInfo(JNIEnv* env, void* header)
 {
 
-}
+}*/

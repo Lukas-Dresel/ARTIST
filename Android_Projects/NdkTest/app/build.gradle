@@ -1,32 +1,38 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.model.application'
 
-android {
-    compileSdkVersion 21
-    buildToolsVersion "21.1.2"
+model {
+    android {
+        compileSdkVersion = 22
+        buildToolsVersion = "22.0.1"
 
-    defaultConfig {
-        applicationId "com.example.lukas.ndktest"
-        minSdkVersion 21
-        targetSdkVersion 21
-        versionCode 1
-        versionName "1.0"
+        defaultConfig.with {
+            applicationId = "com.example.lukas.ndktest"
+            minSdkVersion.apiLevel = 21
+            targetSdkVersion.apiLevel = 22
+            versionCode = 1
+            versionName = "1.0"
 
-        ndk {
-            moduleName "NdkTest"
-            ldLibs "log"
-            cFlags "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast --std=gnu99"
+
         }
     }
-
-
-    buildTypes {
+    android.buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            isMinifyEnabled = false
+            proguardFiles += file('proguard-rules.pro')
         }
     }
-}
 
+    android.sources {
+    }
+
+    android.ndk {
+        moduleName = "NdkTest"
+        ldLibs += "log"
+        CFlags += "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast --std=gnu99"
+    }
+
+
+}
 repositories {
     mavenCentral()
 }
@@ -35,5 +41,5 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.0.0'
     compile 'com.google.code.gson:gson:2.3'
-    compile 'com.google.guava:guava:16.0.1'
+    compile 'com.google.guava:guava:18.0'
 }

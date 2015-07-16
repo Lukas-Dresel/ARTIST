@@ -15,15 +15,17 @@
 #include "exceptions.h"
 #include "util.h"
 
-bool    setMemoryProtection ( JNIEnv* env, void* startingAddress, jlong numBytes, jboolean read, jboolean write, jboolean execute );
+typedef bool (*OUTPUT_CALLBACK)             ( const void* startingAddress, uint64_t currentOffset, int numCurrentBytes, void* additionalInfo);
 
-bool    hexdumpAligned      ( JNIEnv* env, unsigned char* prefix, void* addr, jlong numBytes, jlong bytesPerLine );
+bool    setMemoryProtection                 ( JNIEnv* env,  void* addr, jlong numBytes, jboolean read, jboolean write, jboolean execute );
 
-bool    hexdumpAlignedPrimitive(unsigned char* prefix, void* addr, jlong numBytes, jlong bytesPerLine);
+bool    iterate_byte_array_chunks           ( JNIEnv* env,  const void* addr, jlong numBytes, jlong bytesPerLine, OUTPUT_CALLBACK output, void* additionalInfo );
+bool    iterate_byte_array_chunks_primitive (               const void* addr, jlong numBytes, jlong bytesPerLine, OUTPUT_CALLBACK output, void* additionalInfo );
 
-bool    hexdumpUnaligned      ( JNIEnv* env, unsigned char* prefix, void* addr, jlong numBytes, jlong bytesPerLine );
-
-bool    hexdumpUnalignedPrimitive(unsigned char* prefix, void* addr, jlong numBytes, jlong bytesPerLine);
+bool    hexdump                             ( JNIEnv* env,  const void* addr, jlong numBytes, jlong bytesPerLine);
+bool    hexdump_primitive                   (               const void* addr, jlong numBytes, jlong bytesPerLine);
+bool    hexdump_aligned                     ( JNIEnv* env,  const void* addr, jlong numBytes, jlong bytesPerLine, jlong alignment);
+bool    hexdump_aligned_primitive           (               const void* addr, jlong numBytes, jlong bytesPerLine, jlong alignment);
 
 #endif
 

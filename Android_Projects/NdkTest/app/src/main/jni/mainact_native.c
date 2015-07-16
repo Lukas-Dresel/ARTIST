@@ -49,14 +49,14 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwrite
     LOGI("Calling dummyFunc("PRINT_PTR")(10, 100) before: %d", (uintptr_t)&dummyFunc, dummyFunc(10, 100));
 
     LOGI("Hexdump before: ");
-    hexdumpAligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, "Hexdump", addr, 16, 8);
 
     LOGI("First Byte of address: " PRINT_PTR " => %02x before write.", (uintptr_t)addr, *addr);
     *addr = 0xFF;
     LOGI("First Byte of address: " PRINT_PTR " => %02x after write.", (uintptr_t)addr, *addr);
 
     LOGI("Hexdump after: ");
-    hexdumpAligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, "Hexdump", addr, 16, 8);
     __builtin___clear_cache(addr, addr + 1);
 
     LOGI("We expect to fail here because opcodes are invalid, if this doesn't raise a SEGFAULT we fucked up.");
@@ -98,12 +98,12 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwrite
     LOGI("Calling atoi("PRINT_PTR") before: %d", (uintptr_t)&atoi, atoi("10"));
 
     LOGI("Hexdump before: ");
-    hexdumpAligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, "Hexdump", addr, 16, 8);
 
     *addr = 0x41;
 
     LOGI("Hexdump after: ");
-    hexdumpAligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, "Hexdump", addr, 16, 8);
     __builtin___clear_cache((void*)addr, (void*)addr + 1);
 
     LOGI("We expect to fail here because opcodes are invalid, if this doesn't raise a SEGFAULT we fucked up.");
@@ -132,13 +132,13 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpoin
     LOGI("Calling atoi("PRINT_PTR") before: %d", (uintptr_t)addr, atoi("10"));
 
     LOGI("Hexdump before: ");
-    hexdumpAligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, "Hexdump", addr, 16, 8);
 
     memcpy(addr, &val, 2);
     __builtin___clear_cache((void*)addr, (void*)addr + 1);
 
     LOGI("Hexdump after: ");
-    hexdumpAligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, "Hexdump", addr, 16, 8);
 
     LOGI("We expect to fail here because opcodes are invalid, if this doesn't raise a SEGFAULT we fucked up.");
     LOGI("Calling atoi("PRINT_PTR") after: %d", (uintptr_t)&atoi, atoi("10"));
@@ -166,12 +166,12 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwrite
     LOGI("Calling NewBooleanArray("PRINT_PTR") before: "PRINT_PTR, (uintptr_t)(*env)->NewBooleanArray, (uintptr_t)(*env)->NewBooleanArray(env, 10));
 
     LOGI("Hexdump before: ");
-    hexdumpAligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, "Hexdump", addr, 16, 8);
 
     *addr = 0x41;
 
     LOGI("Hexdump after: ");
-    hexdumpAligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, "Hexdump", addr, 16, 8);
 
     __builtin___clear_cache((void*)addr, (void*)addr + 1);
 
@@ -208,7 +208,7 @@ int hook_atoi(char* str)
     LOGI("We are inside atoi right now! o.O Args: %s", str);
     disable_inline_function_hook(atoi_hook);
 
-    hexdumpAlignedPrimitive("Hexdump", (void*)&str, 32, 8);
+    hexdump_aligned_primitive("Hexdump", (void*)&str, 32, 8);
 
     errno = 0;
     int realResult = atoi(str);
@@ -239,7 +239,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAt
     print_full_inline_function_hook_info(env);
 
     char* str = "10";
-    LOGI("Address of parsestring: \"%s\"("PRINT_PTR")", str, &str);
+    LOGI("Address of parsestring: \"%s\"("PRINT_PTR")", str, (uintptr_t)&str);
 
     LOGI("Before Hooking: atoi(\"10\") = %d", atoi(str));
     if(!enable_inline_function_hook(atoi_hook))
