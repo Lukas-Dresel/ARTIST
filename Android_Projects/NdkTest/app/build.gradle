@@ -16,22 +16,23 @@ model {
         }
     }
     android.buildTypes {
+        debug {
+            isJniDebuggable = true
+        }
         release {
             isMinifyEnabled = false
             proguardFiles += file('proguard-rules.pro')
         }
     }
-
     android.sources {
     }
-
     android.ndk {
         moduleName = "NdkTest"
         ldLibs += "log"
-        CFlags += "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast --std=gnu99"
+        CFlags += "--std=gnu99"
+        CFlags += "-Wno-pointer-to-int-cast"
+        CFlags += "-Wno-int-to-pointer-cast"
     }
-
-
 }
 repositories {
     mavenCentral()
