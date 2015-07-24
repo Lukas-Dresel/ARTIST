@@ -1,68 +1,74 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.model.application'
 
-android {
-    compileSdkVersion 21
-    buildToolsVersion "21.1.2"
 
-    defaultConfig {
-        applicationId "com.example.lukas.ndktest"
-        minSdkVersion 19
-        targetSdkVersion 19
-        versionCode 1
-        versionName "1.0"
+// Check out for details http://tools.android.com/tech-docs/new-build-system/gradle-experimental
+model {
+    android {
+        compileSdkVersion = 22
+        buildToolsVersion = "22.0.1"
 
-        ndk {
-            moduleName "NdkTest"
-            ldLibs "log", "dl"
-            cFlags "-g -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast --std=gnu99 -O3 -mthumb"
-            android.buildTypes.debug.jniDebuggable true
+        defaultConfig.with {
+            applicationId = "com.example.lukas.ndktest"
+            minSdkVersion.apiLevel = 21
+            targetSdkVersion.apiLevel = 22
+            versionCode = 1
+            versionName = "1.0"
         }
     }
-
-    //sourceSets.main {
-    //    jniLibs.srcDir 'src/main/libs'
-    //}
-    //sourceSets.main.jni.srcDirs = [] //disable automatic ndk-build call
-
-    buildTypes {
+    android.ndk {
+        moduleName = "NdkTest"
+        ldLibs += "log"
+        ldLibs += "dl"
+        CFlags += "-g"
+        CFlags += "-mthumb"
+        CFlags += "--std=gnu99"
+        CFlags += "-Wno-pointer-to-int-cast"
+        CFlags += "-Wno-int-to-pointer-cast"
+    }
+    android.buildTypes {
+        debug {
+            isJniDebuggable = true
+        }
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            isMinifyEnabled = false
+            proguardFiles += file('proguard-rules.pro')
+        }
+    }
+    android.productFlavors {
+        create("x86") {
+            ndk.with {
+                abiFilters += "x86"
+            }
+        }
+        create("mips") {
+            ndk.with {
+                abiFilters += "mips"
+            }
+        }
+        create("armv7") {
+            ndk.with {
+                abiFilters += "armeabi-v7a"
+            }
+        }
+        create("arm") {
+            ndk.with {
+                abiFilters += "armeabi"
+            }
+        }
+        create("fat") {
         }
     }
 
-    productFlavors {
-        x86 {
-            ndk {
-                abiFilter "x86"
-            }
-        }
-        mips {
-            ndk {
-                abiFilter "mips"
-            }
-        }
-        armv7 {
-            ndk {
-                abiFilter "armeabi-v7a"
-            }
-        }
-        arm {
-            ndk {
-                abiFilter "armeabi"
-            }
-        }
-        fat
+    android.sources {
     }
 }
-
 repositories {
     mavenCentral()
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:22.0.0'
+    compile 'com.android.support:appcompat-v7:22.2.1'
     compile 'com.google.code.gson:gson:2.3'
-    compile 'com.google.guava:guava:16.0.1'
+    compile 'com.google.guava:guava:18.0'
 }
