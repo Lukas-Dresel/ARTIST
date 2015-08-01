@@ -25,6 +25,17 @@ model {
         CFlags += "-Wno-pointer-to-int-cast"
         CFlags += "-Wno-int-to-pointer-cast"
     }
+
+    android.sources {
+        main {
+            jni {
+                source {
+                    srcDirs 'src/main/jni'
+                }
+            }
+        }
+    }
+
     android.buildTypes {
         debug {
             isJniDebuggable = true
@@ -57,9 +68,6 @@ model {
         }
         create("fat") {
         }
-    }
-
-    android.sources {
     }
 }
 repositories {
