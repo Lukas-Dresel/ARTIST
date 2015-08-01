@@ -123,14 +123,13 @@ InlineFunctionHook* install_inline_function_hook( JNIEnv* env, const unsigned ch
 
 bool uninstall_inline_function_hook  ( InlineFunctionHook * hook )
 {
-    if(hasExceptionOccurred(hook->env))
-    {
-        return false;
-    }
     if(hook == NULL)
     {
         LOGE("The hook pointer was NULL. Throwing Exception ... ");
-        throwNewJNIException(hook->env, "java/lang/NullPointerException", "The hook pointer was NULL. This is not allowed.");
+        return false;
+    }
+    if(hasExceptionOccurred(hook->env))
+    {
         return false;
     }
     LOGD("Uninstalling Hook. Don't use this after calling this, the hook memory was freed if this function succeeded.");
