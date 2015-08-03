@@ -132,13 +132,21 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpoin
     LOGI("Calling atoi("PRINT_PTR") before: %d", (uintptr_t)addr, atoi("10"));
 
     LOGI("Hexdump before: ");
-    hexdump_aligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, addr, 16, 8, 8);
+
+    volatile bool run = false;
+
+    int i = 0;
+    while(!run)
+    {
+        i++;
+    }
 
     memcpy(addr, &val, 2);
     __builtin___clear_cache((void*)addr, (void*)addr + 1);
 
     LOGI("Hexdump after: ");
-    hexdump_aligned(env, "Hexdump", addr, 16, 8);
+    hexdump_aligned(env, addr, 16, 8, 8);
 
     LOGI("We expect to fail here because opcodes are invalid, if this doesn't raise a SEGFAULT we fucked up.");
     LOGI("Calling atoi("PRINT_PTR") after: %d", (uintptr_t)&atoi, atoi("10"));
@@ -241,6 +249,14 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAt
     char* str = "10";
     LOGI("Address of parsestring: \"%s\"("PRINT_PTR")", str, (uintptr_t)&str);
 
+    volatile bool run = false;
+
+    int i = 0;
+    while(!run)
+    {
+        i++;
+    }
+
     LOGI("Before Hooking: atoi(\"10\") = %d", atoi(str));
     if(!enable_inline_function_hook(atoi_hook))
     {
@@ -249,7 +265,8 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAt
     LOGI("Enabled Hook.");
     print_full_inline_function_hook_info(env);
 
-    LOGI("After Hooking: atoi(\"10\") = %d", atoi(str));
+    int result = atoi(str);
+    LOGI("After Hooking: atoi(\"10\") = %d", result);
     if(!disable_inline_function_hook(atoi_hook))
     {
         return;

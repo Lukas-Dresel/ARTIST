@@ -39,6 +39,7 @@ public class MainActivity extends Activity
         this.dumpProcAlignmentMap();
         this.dumpJEnvContent();
 
+        this.testHookingAtoi();
         this.testBreakpointAtoi();
 
         try
