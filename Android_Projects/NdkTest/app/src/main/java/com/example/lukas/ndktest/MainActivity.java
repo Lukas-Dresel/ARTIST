@@ -83,26 +83,9 @@ public class MainActivity extends Activity
         return super.onOptionsItemSelected(item);
     }
 
-    private native void testOverwriteAtoi();
-
-    private native void testOverwriteJNIEnvFunc();
-
-    private native void testOverwriteOwnFunction();
-
     private native void testBreakpointAtoi();
 
-    private native void testHookingAtoi();
-
-    private native void testHookingAndroidLogPrint();
-
-    private native void dumpJEnvContent();
-
     private native void dumpProcessMemoryMap();
-
-    private native void dumpProcAlignmentMap();
-
-    private native void setMemoryProtection(long address, long size, boolean read, boolean write, boolean execute);
-
 
     static
     {

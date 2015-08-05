@@ -15,13 +15,14 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#include <ucontext.h>
+
 #include "config.h"
 
 #include "com_example_lukas_ndktest_MainActivity.h"
 
 #include "logging.h"
 #include "memory.h"
-#include "hooking.h"
 #include "lib_setup.h"
 #include "util.h"
 

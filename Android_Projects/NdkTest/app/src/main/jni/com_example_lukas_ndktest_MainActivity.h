@@ -57,29 +57,6 @@ extern "C" {
 #define com_example_lukas_ndktest_MainActivity_RESULT_FIRST_USER 1L
 #undef com_example_lukas_ndktest_MainActivity_RESULT_OK
 #define com_example_lukas_ndktest_MainActivity_RESULT_OK -1L
-/*
- * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    testOverwriteAtoi
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwriteAtoi
-  (JNIEnv *, jobject);
-
-/*
- * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    testOverwriteJNIEnvFunc
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwriteJNIEnvFunc
-  (JNIEnv *, jobject);
-
-/*
- * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    testOverwriteOwnFunction
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwriteOwnFunction
-  (JNIEnv *, jobject);
 
 /*
  * Class:     com_example_lukas_ndktest_MainActivity
@@ -91,51 +68,11 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpoin
 
 /*
  * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    testHookingAtoi
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAtoi
-  (JNIEnv *, jobject);
-
-/*
- * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    testHookingAndroidLogPrint
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAndroidLogPrint
-  (JNIEnv *, jobject);
-
-/*
- * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    dumpJEnvContent
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpJEnvContent
-  (JNIEnv *, jobject);
-
-/*
- * Class:     com_example_lukas_ndktest_MainActivity
  * Method:    dumpProcessMemoryMap
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcessMemoryMap
   (JNIEnv *, jobject);
-
-/*
- * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    dumpProcAlignmentMap
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcAlignmentMap
-  (JNIEnv *, jobject);
-
-/*
- * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    setMemoryProtection
- * Signature: (JJZZZ)V
- */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_setMemoryProtection
-  (JNIEnv *, jobject, jlong, jlong, jboolean, jboolean, jboolean);
 
 #ifdef __cplusplus
 }
