@@ -33,6 +33,20 @@ model {
         CFlags += "-Wno-pointer-to-int-cast"
         CFlags += "-Wno-int-to-pointer-cast"
     }
+    android.productFlavors {
+        create("armv7") {
+            ndk.with {
+                abiFilters += "armeabi-v7a"
+            }
+        }
+        create("arm") {
+            ndk.with {
+                abiFilters += "armeabi"
+            }
+        }
+        create("fat") {
+        }
+    }
 }
 repositories {
     mavenCentral()
