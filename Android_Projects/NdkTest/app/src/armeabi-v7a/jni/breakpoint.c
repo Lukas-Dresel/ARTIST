@@ -117,7 +117,7 @@ void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
     LOGD("Arg6: %x", getArg(6, context));
     LOGD("Arg7: %x", getArg(7, context));
 
-    short* target = (short*)state_info->arm_pc;
+    short* target = (short*)&atoi;
     LOGD("func before rewriting original instruction ("PRINT_PTR"):", (uintptr_t)target);
     hexdump_aligned_primitive((void*)target, 16, 16, 4);
     *target = (short)0xb598;
