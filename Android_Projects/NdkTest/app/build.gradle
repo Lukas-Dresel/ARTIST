@@ -24,8 +24,6 @@ model {
             proguardFiles += file('proguard-rules.pro')
         }
     }
-    android.sources {
-    }
     android.ndk {
         moduleName = "NdkTest"
         ldLibs += "log"
@@ -34,17 +32,15 @@ model {
         CFlags += "-Wno-int-to-pointer-cast"
     }
     android.productFlavors {
-        create("armv7") {
+        create("armeabi-v7a") {
             ndk.with {
                 abiFilters += "armeabi-v7a"
             }
         }
-        create("arm") {
+        create("armeabi") {
             ndk.with {
                 abiFilters += "armeabi"
             }
-        }
-        create("fat") {
         }
     }
 }

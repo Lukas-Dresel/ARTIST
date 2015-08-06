@@ -36,10 +36,6 @@ public class MainActivity extends Activity
         this.mOutput = (TextView) this.findViewById(R.id.output);
 
         this.dumpProcessMemoryMap();
-        this.dumpProcAlignmentMap();
-        this.dumpJEnvContent();
-
-        this.testHookingAtoi();
         this.testBreakpointAtoi();
 
         try
@@ -48,9 +44,6 @@ public class MainActivity extends Activity
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             JsonElement serialized = gson.toJsonTree(info.Regions);
             this.mOutput.setText(serialized.toString());
-
-            this.testHookingAtoi();
-            this.testHookingAndroidLogPrint();
         }
         catch (Exception ex)
         {
