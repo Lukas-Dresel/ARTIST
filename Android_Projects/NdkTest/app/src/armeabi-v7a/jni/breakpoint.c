@@ -3,7 +3,6 @@
 //
 
 #include "breakpoint.h"
-#include "../../main/jni/logging.h"
 
 uint32_t getArg(unsigned int index, ucontext_t* context)
 {
@@ -106,9 +105,9 @@ void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
     LOGD("Arg6: %x", getArg(6, context));
     LOGD("Arg7: %x", getArg(7, context));
 
-    setArg(0, (uint32_t)"50", context);
+    //setArg(0, (uint32_t)"50", context);
     LOGD("Overwritten: ");
-    LOGD("Arg0: %x", getArg(0, context));
+    LOGD("Arg0: %x => %s", getArg(0, context), getArg(0, context));
     LOGD("Arg1: %x", getArg(1, context));
     LOGD("Arg2: %x", getArg(2, context));
     LOGD("Arg3: %x", getArg(3, context));
@@ -117,12 +116,18 @@ void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
     LOGD("Arg6: %x", getArg(6, context));
     LOGD("Arg7: %x", getArg(7, context));
 
-    short* target = (short*)&atoi;
+    short* target = (short*)getCodeBaseAddress(&atoi);
+
     LOGD("func before rewriting original instruction ("PRINT_PTR"):", (uintptr_t)target);
     hexdump_aligned_primitive((void*)target, 16, 16, 4);
-    *target = (short)0xb598;
-    LOGD("func after rewriting original instruction: ");
+
+    target[0] = (short)0x2100;
+    __builtin___clear_cache((void*)target, (void*)target + 2);
+
+    LOGD("func after rewriting original instruction ("PRINT_PTR"):", (uintptr_t)target);
     hexdump_aligned_primitive((void*)target, 16, 16, 4);
+
+    LOGD("Returning from SIGILL-Handler.");
 }
 
 void sigsegv_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
@@ -134,6 +139,7 @@ void sigsegv_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
     LOGD("\tSignal number: %d", sigInfo->si_signo);
     LOGD("\tErrno: %d, Error: %s", sigInfo->si_errno, strerror(sigInfo->si_errno));
     LOGD("\tSignal Code: %d", sigInfo->si_code);
+
     LOGD("\tFaulting address: "PRINT_PTR, (uintptr_t) sigInfo->si_addr);
 
     LOGD("\nContext: ");
@@ -189,32 +195,45 @@ static struct sigaction old_sigill_action;
 static struct sigaction old_sigsegv_action;
 void init_breakpoints()
 {
-    struct sigaction trap_action;
+    /*stack_t sigstk;
+    if ((sigstk.ss_sp = malloc(SIGSTKSZ)) == NULL)
+    {
+        LOGE("Could not allocate mem for alt stack");
+        return;
+    }
+    sigstk.ss_size = SIGSTKSZ;
+    sigstk.ss_flags = 0;
+    if (sigaltstack(&sigstk,NULL) < 0)
+    {
+        perror("sigaltstack");
+    }*/
 
-    trap_action.sa_sigaction = (void*)sigill_handler;
-    trap_action.sa_flags = SA_SIGINFO;
+    struct sigaction sigill_action;
 
-    if(sigaction(SIGILL, &trap_action, &old_sigill_action) != 0)
+    sigill_action.sa_sigaction = (void*)sigill_handler;
+    sigill_action.sa_flags = SA_SIGINFO;
+
+    if(sigaction(SIGTRAP, &sigill_action, &old_sigill_action) != 0)
     {
         LOGD("Error installing SIGTRAP handler: %s", strerror(errno));
     }
 
-    struct sigaction segv_action;
+    /*struct sigaction segv_action;
 
     segv_action.sa_sigaction = (void*)sigsegv_handler;
     segv_action.sa_flags = SA_SIGINFO;
 
-    if(sigaction(SIGSEGV, &trap_action, &old_sigsegv_action) != 0)
+    if(sigaction(SIGSEGV, &segv_action, &old_sigsegv_action) != 0)
     {
         LOGD("Error installing SIGTRAP handler: %s", strerror(errno));
-    }
+    }*/
 }
 
 void run_breakpoint_test(JNIEnv* env)
 {
     unsigned short * addr = (unsigned short *)getCodeBaseAddress((void*)&atoi);
 
-    unsigned short val = 0xffff;
+    unsigned short val = 0xde01;
 
     setMemoryProtection(env, addr, 4, true, true, true);
     unsigned short previousValue = *addr;
@@ -227,19 +246,21 @@ void run_breakpoint_test(JNIEnv* env)
     volatile bool run = false;
 
     int i = 0;
-    while(!run)
+    while(run)
     {
         i++;
     }
 
     memcpy(addr, &val, 2);
-    __builtin___clear_cache((void*)addr, (void*)addr + 2);
+    __builtin___clear_cache((void*)addr, (void*)addr + 4);
 
     LOGI("Hexdump after: ");
     hexdump_aligned(env, addr, 16, 8, 8);
 
     LOGI("We expect to fail here because opcodes are invalid, if this doesn't raise a SEGFAULT we fucked up.");
-    LOGI("Calling atoi("PRINT_PTR") after: %d", (uintptr_t)&atoi, atoi("10"));
+    errno = 0;
+    int result = atoi("10");
+    LOGI("Calling atoi("PRINT_PTR") after: %d [Error: %s]", (uintptr_t)&atoi, result, strerror(errno));
 
     LOGI("Restoring ...");
     *addr = previousValue;
@@ -253,8 +274,8 @@ void destroy_breakpoints()
     {
         LOGD("Error uninstalling SIGTRAP handler: %s", strerror(errno));
     }
-    if(sigaction(SIGSEGV, &old_sigsegv_action, NULL) != 0)
+    /*if(sigaction(SIGSEGV, &old_sigsegv_action, NULL) != 0)
     {
         LOGD("Error uninstalling SIGTRAP handler: %s", strerror(errno));
-    }
+    }*/
 }
