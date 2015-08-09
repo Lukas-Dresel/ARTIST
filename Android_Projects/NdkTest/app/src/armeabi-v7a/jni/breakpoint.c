@@ -77,7 +77,18 @@ void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
     LOGD("\tSP:                 "PRINT_PTR, (uintptr_t)state_info->arm_sp);
     LOGD("\tLR:                 "PRINT_PTR, (uintptr_t)state_info->arm_lr);
     LOGD("\tPC:                 "PRINT_PTR, (uintptr_t)state_info->arm_pc);
-    LOGD("\tCPSR:               "PRINT_PTR, (uintptr_t)state_info->arm_cpsr);
+
+    uint32_t cpsr = state_info->arm_cpsr;
+    LOGD("\tCPSR:               "PRINT_PTR, (uintptr_t)cpsr);
+    LOGD("\t\tThumb State:      %d", (cpsr & CPSR_FLAG_THUMB) ? 1 : 0);
+    LOGD("\t\tFIQ Ints disable: %d", (cpsr & CPSR_FLAG_DISABLE_FIQ_INTERRUPTS) ? 1 : 0);
+    LOGD("\t\tIRQ Ints disable: %d", (cpsr & CPSR_FLAG_DISABLE_IRQ_INTERRUPTS) ? 1 : 0);
+    LOGD("\t\tJazelle State:    %d", (cpsr & CPSR_FLAG_JAZELLE) ? 1 : 0);
+    LOGD("\t\tUnderflow:        %d", (cpsr & CPSR_FLAG_UNDERFLOW_SATURATION) ? 1 : 0);
+    LOGD("\t\tSigned Overflow:  %d", (cpsr & CPSR_FLAG_SIGNED_OVERFLOW) ? 1 : 0);
+    LOGD("\t\tCarry:            %d", (cpsr & CPSR_FLAG_CARRY) ? 1 : 0);
+    LOGD("\t\tZero:             %d", (cpsr & CPSR_FLAG_ZERO) ? 1 : 0);
+    LOGD("\t\tNegative:         %d", (cpsr & CPSR_FLAG_NEGATIVE) ? 1 : 0);
 
     /*LOGD("Flags: ");
     hexdump_aligned_primitive(&context->uc_flags, sizeof (context->uc_flags), 4, 4);
@@ -105,9 +116,9 @@ void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
     LOGD("Arg6: %x", getArg(6, context));
     LOGD("Arg7: %x", getArg(7, context));
 
-    //setArg(0, (uint32_t)"50", context);
+    setArg(0, (uint32_t)'F', context);
     LOGD("Overwritten: ");
-    LOGD("Arg0: %x => %s", getArg(0, context), getArg(0, context));
+    LOGD("Arg0: %x", getArg(0, context), getArg(0, context));
     LOGD("Arg1: %x", getArg(1, context));
     LOGD("Arg2: %x", getArg(2, context));
     LOGD("Arg3: %x", getArg(3, context));
@@ -116,12 +127,12 @@ void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
     LOGD("Arg6: %x", getArg(6, context));
     LOGD("Arg7: %x", getArg(7, context));
 
-    short* target = (short*)getCodeBaseAddress(&atoi);
+    short* target = (short*)getCodeBaseAddress(&tolower);
 
     LOGD("func before rewriting original instruction ("PRINT_PTR"):", (uintptr_t)target);
     hexdump_aligned_primitive((void*)target, 16, 16, 4);
 
-    target[0] = (short)0x2100;
+    target[0] = (short)0x4b05;
     __builtin___clear_cache((void*)target, (void*)target + 2);
 
     LOGD("func after rewriting original instruction ("PRINT_PTR"):", (uintptr_t)target);
@@ -162,7 +173,18 @@ void sigsegv_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
     LOGD("\tSP:                 "PRINT_PTR, (uintptr_t) state_info->arm_sp);
     LOGD("\tLR:                 "PRINT_PTR, (uintptr_t) state_info->arm_lr);
     LOGD("\tPC:                 "PRINT_PTR, (uintptr_t) state_info->arm_pc);
-    LOGD("\tCPSR:               "PRINT_PTR, (uintptr_t) state_info->arm_cpsr);
+
+    uint32_t cpsr = state_info->arm_cpsr;
+    LOGD("\tCPSR:               "PRINT_PTR, (uintptr_t)cpsr);
+    LOGD("\t  Thumb State:      %d", (cpsr & CPSR_FLAG_THUMB) ? 1 : 0);
+    LOGD("\t  FIQ Ints disable: %d", (cpsr & CPSR_FLAG_DISABLE_FIQ_INTERRUPTS) ? 1 : 0);
+    LOGD("\t  IRQ Ints disable: %d", (cpsr & CPSR_FLAG_DISABLE_IRQ_INTERRUPTS) ? 1 : 0);
+    LOGD("\t  Jazelle State:    %d", (cpsr & CPSR_FLAG_JAZELLE) ? 1 : 0);
+    LOGD("\t  Underflow:        %d", (cpsr & CPSR_FLAG_UNDERFLOW_SATURATION) ? 1 : 0);
+    LOGD("\t  Signed Overflow:  %d", (cpsr & CPSR_FLAG_SIGNED_OVERFLOW) ? 1 : 0);
+    LOGD("\t  Carry:            %d", (cpsr & CPSR_FLAG_CARRY) ? 1 : 0);
+    LOGD("\t  Zero:             %d", (cpsr & CPSR_FLAG_ZERO) ? 1 : 0);
+    LOGD("\t  Negative:         %d", (cpsr & CPSR_FLAG_NEGATIVE) ? 1 : 0);
 
     /*LOGD("Flags: ");
     hexdump_aligned_primitive(&context->uc_flags, sizeof (context->uc_flags), 4, 4);
@@ -231,14 +253,16 @@ void init_breakpoints()
 
 void run_breakpoint_test(JNIEnv* env)
 {
-    unsigned short * addr = (unsigned short *)getCodeBaseAddress((void*)&atoi);
+    unsigned short * addr = (unsigned short *)getCodeBaseAddress((void*)&tolower);
 
     unsigned short val = 0xde01;
 
     setMemoryProtection(env, addr, 4, true, true, true);
     unsigned short previousValue = *addr;
 
-    LOGI("Calling atoi("PRINT_PTR") before: %d", (uintptr_t)addr, atoi("10"));
+    char c = 'A';
+
+    LOGI("Calling ["PRINT_PTR"]tolower(%c) before: %d", (uintptr_t)addr, c, tolower(c));
 
     LOGI("Hexdump before: ");
     hexdump_aligned(env, addr, 16, 8, 8);
@@ -252,15 +276,15 @@ void run_breakpoint_test(JNIEnv* env)
     }
 
     memcpy(addr, &val, 2);
-    __builtin___clear_cache((void*)addr, (void*)addr + 4);
+    __builtin___clear_cache((void*)addr, (void*)addr + 2);
 
     LOGI("Hexdump after: ");
     hexdump_aligned(env, addr, 16, 8, 8);
 
     LOGI("We expect to fail here because opcodes are invalid, if this doesn't raise a SEGFAULT we fucked up.");
     errno = 0;
-    int result = atoi("10");
-    LOGI("Calling atoi("PRINT_PTR") after: %d [Error: %s]", (uintptr_t)&atoi, result, strerror(errno));
+    int result = tolower(c);
+    LOGI("Calling ["PRINT_PTR"]tolower(%c) after: %d", (uintptr_t)addr, c, result);
 
     LOGI("Restoring ...");
     *addr = previousValue;
@@ -270,7 +294,7 @@ void run_breakpoint_test(JNIEnv* env)
 
 void destroy_breakpoints()
 {
-    if(sigaction(SIGILL, &old_sigill_action, NULL) != 0)
+    if(sigaction(SIGTRAP, &old_sigill_action, NULL) != 0)
     {
         LOGD("Error uninstalling SIGTRAP handler: %s", strerror(errno));
     }

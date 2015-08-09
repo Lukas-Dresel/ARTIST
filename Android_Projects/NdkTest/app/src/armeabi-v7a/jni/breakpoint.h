@@ -25,5 +25,6 @@
 #include "../../main/jni/breakpoint_interface.h"
 #include "../../main/jni/memory.h"
 #include "../../main/jni/util.h"
+#include "cpsr_util.h"
 
 #endif //NDKTEST_BREAKPOINT_H
