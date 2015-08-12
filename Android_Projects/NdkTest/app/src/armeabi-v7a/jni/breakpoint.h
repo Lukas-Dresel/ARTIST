@@ -22,9 +22,13 @@
 
 #include <ucontext.h>
 
+#include "../../main/jni/debug_util.h"
 #include "../../main/jni/breakpoint_interface.h"
 #include "../../main/jni/memory.h"
 #include "../../main/jni/util.h"
+
 #include "cpsr_util.h"
+
+static struct sigaction old_sigtrap_action;
 
 #endif //NDKTEST_BREAKPOINT_H

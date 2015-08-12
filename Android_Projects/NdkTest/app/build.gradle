@@ -18,6 +18,9 @@ model {
     android.buildTypes {
         debug {
             isJniDebuggable = true
+            ndk.with {
+                CFlags += "-DDEBUG_WAIT"
+            }
         }
         release {
             isMinifyEnabled = false
