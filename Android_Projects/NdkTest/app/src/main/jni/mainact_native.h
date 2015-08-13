@@ -48,7 +48,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcAlign
 
 /*
  * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    setMemoryProtection
+ * Method:    set_memory_protection
  * Signature: (IIZZZ)V
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_setMemoryProtection (JNIEnv * env, jobject self, jlong address, jlong size, jboolean read, jboolean write, jboolean execute);

@@ -30,19 +30,20 @@ model {
     android.ndk {
         moduleName = "NdkTest"
         ldLibs += "log"
+        CFlags += "-marm"
         CFlags += "--std=gnu99"
         CFlags += "-Wno-pointer-to-int-cast"
         CFlags += "-Wno-int-to-pointer-cast"
     }
     android.productFlavors {
-        create("armeabi-v7a") {
-            ndk.with {
-                abiFilters += "armeabi-v7a"
-            }
-        }
         create("armeabi") {
             ndk.with {
                 abiFilters += "armeabi"
+            }
+        }
+        create("armeabi-v7a") {
+            ndk.with {
+                abiFilters += "armeabi-v7a"
             }
         }
     }

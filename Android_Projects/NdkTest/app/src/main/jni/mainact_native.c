@@ -26,7 +26,7 @@ void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpointAtoi (JNIEnv * env, jobject this)
 {
-    run_breakpoint_test(env);
+    run_trap_point_test(env);
 }
 
 /*

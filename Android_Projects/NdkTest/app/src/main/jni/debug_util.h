@@ -14,7 +14,7 @@ static inline void waitForDebugger()
     #endif
 
     int i = 0;
-    while(!run)
+    while(run)
     {
         i++;
     }

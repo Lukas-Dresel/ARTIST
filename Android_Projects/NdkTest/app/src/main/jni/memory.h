@@ -17,7 +17,8 @@
 
 typedef bool (*OUTPUT_CALLBACK)             ( const void* startingAddress, uint64_t currentOffset, int numCurrentBytes, void* additionalInfo);
 
-bool    setMemoryProtection                 ( JNIEnv* env,  void* addr, jlong numBytes, jboolean read, jboolean write, jboolean execute );
+bool    set_memory_protection(void *addr, jlong numBytes, jboolean read, jboolean write,
+                              jboolean execute);
 
 bool    iterate_byte_array_chunks           ( JNIEnv* env,  const void* addr, jlong numBytes, jlong bytesPerLine, OUTPUT_CALLBACK output, void* additionalInfo );
 bool    iterate_byte_array_chunks_primitive (               const void* addr, jlong numBytes, jlong bytesPerLine, OUTPUT_CALLBACK output, void* additionalInfo );

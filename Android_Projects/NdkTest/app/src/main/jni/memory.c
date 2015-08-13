@@ -51,9 +51,10 @@ bool iterate_byte_array_chunks_primitive(const void* addr, jlong numBytes, jlong
     return true;
 }
 
-bool setMemoryProtection (JNIEnv* env, void* startingAddress, jlong numBytes, jboolean read, jboolean write, jboolean execute)
+bool set_memory_protection(void *startingAddress, jlong numBytes, jboolean read, jboolean write,
+                           jboolean execute)
 {
-    LOGD("setMemoryProtection(addr="PRINT_PTR", numBytes=%lld, read=%s, write=%s, exec=%s", (uintptr_t)startingAddress, numBytes, read ? "true" : "false", write ? "true" : "false", execute ? "true" : "false");
+    LOGD("set_memory_protection(addr="PRINT_PTR", numBytes=%lld, read=%s, write=%s, exec=%s", (uintptr_t)startingAddress, numBytes, read ? "true" : "false", write ? "true" : "false", execute ? "true" : "false");
     int protections = 0;
 
     protections |=  read     ?   PROT_READ     : 0;
