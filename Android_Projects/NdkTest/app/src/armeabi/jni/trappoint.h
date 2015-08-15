@@ -27,11 +27,10 @@
 #include "../../main/jni/memory.h"
 #include "../../main/jni/util.h"
 #include "../../main/jni/list.h"
+#include "../../main/jni/error.h"
+#include "../../main/jni/signal_handling_helper.h"
 
-#include "bkpt.h"
-#include "illegal_instruction.h"
-
-#include "cpsr_util.h"
+#include "generate_trap_instruction.h"
 
 typedef struct TargetInfo
 {
@@ -39,36 +38,41 @@ typedef struct TargetInfo
     void*       mem_addr;
     bool        thumb;
 } TargetInfo;
-typedef struct ThumbWriteInfo
+
+typedef struct ThumbCodeInfo
 {
     uint16_t preserved;
-    uint16_t bkpt;
-} ThumbWriteInfo;
-typedef struct ArmWriteInfo
+    uint16_t trap_instruction;
+} ThumbCodeInfo;
+
+typedef struct ArmCodeInfo
 {
     uint32_t preserved;
-    uint32_t bkpt;
-} ArmWriteInfo;
+    uint32_t trap_instruction;
+} ArmCodeInfo;
+
+struct TrapPointInfo
+{
+    CALLBACK                handler;
+    void*                   handler_args;
+
+    TargetInfo              target;
+
+    uint32_t                instr_size;
+
+    uint32_t                trapping_method;
+    union
+    {
+        ThumbCodeInfo       thumbCode;
+        ArmCodeInfo         armCode;
+    };
+
+    struct list_head        installed;
+};
+
 
 static struct sigaction old_sigtrap_action;
 static struct list_head installed_trap_points;
 
-
-struct TrapPointInfo
-{
-    CALLBACK            handler;
-
-    TargetInfo          target;
-
-    uint32_t            instr_size;
-
-    union
-    {
-        ThumbWriteInfo      thumbCode;
-        ArmWriteInfo        armCode;
-    };
-
-    struct list_head    installed;
-};
 
 #endif //NDKTEST_TRAPPOINT_H

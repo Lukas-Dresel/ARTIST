@@ -5,22 +5,25 @@
 #ifndef NDKTEST_TRAPPOINT_INTERFACE_H
 #define NDKTEST_TRAPPOINT_INTERFACE_H
 
-#include <jni.h>
+#include <ucontext.h>
+#include <stdbool.h>
+
+#define TRAP_METHOD_SIGTRAP_BKPT 1
+#define TRAP_METHOD_SIGILL_KNOWN_ILLEGAL_INSTR 2
 
 struct TrapPointInfo;
-
 typedef struct TrapPointInfo TrapPointInfo;
 
-typedef void (*CALLBACK)(void* addr, struct ucontext_t* ctx);
+typedef void (*CALLBACK)(void* addr, ucontext_t* ctx, void* additionalArg);
 
 void init_trap_points();
+void destroy_trap_points();
 
-TrapPointInfo* install_trap_point(void* addr, CALLBACK handler);
-
+TrapPointInfo* install_trap_point(void* addr, uint32_t method, CALLBACK handler, void* additionalArg);
 void uninstall_trap_point(TrapPointInfo* trap);
 
-void run_trap_point_test(JNIEnv *);
+void dump_installed_trappoints_info();
+bool validate_TrapPointInfo_contents(TrapPointInfo * trap);
 
-void destroy_trap_points();
 
 #endif //NDKTEST_TRAPPOINT_INTERFACE_H

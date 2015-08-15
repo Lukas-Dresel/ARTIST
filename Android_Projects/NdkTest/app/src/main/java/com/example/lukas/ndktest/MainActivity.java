@@ -35,7 +35,7 @@ public class MainActivity extends Activity
 
         this.mOutput = (TextView) this.findViewById(R.id.output);
 
-        this.dumpProcessMemoryMap();
+        //this.dumpProcessMemoryMap();
         this.testBreakpointAtoi();
 
         try

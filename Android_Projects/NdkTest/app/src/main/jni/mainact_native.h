@@ -3,29 +3,6 @@
 
 #include <jni.h>
 
-#include <unistd.h>
-#include <sys/mman.h>
-#include <errno.h>
-
-#include <stdlib.h>
-
-#include <stdio.h>
-
-#include <stdbool.h>
-#include <stdint.h>
-#include <inttypes.h>
-
-#include <ucontext.h>
-
-#include "config.h"
-
-#include "com_example_lukas_ndktest_MainActivity.h"
-
-#include "logging.h"
-#include "memory.h"
-#include "lib_setup.h"
-#include "util.h"
-
 /*
  * Class:     com_example_lukas_ndktest_MainActivity
  * Method:    dumpJEnvContent
