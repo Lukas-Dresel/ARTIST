@@ -70,9 +70,4 @@ struct TrapPointInfo
     struct list_head        installed;
 };
 
-
-static struct sigaction old_sigtrap_action;
-static struct list_head installed_trap_points;
-
-
 #endif //NDKTEST_TRAPPOINT_H

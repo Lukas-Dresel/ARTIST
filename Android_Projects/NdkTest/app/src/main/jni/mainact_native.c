@@ -44,13 +44,11 @@ void run_trap_point_test(JNIEnv *env)
     LOGI("Hexdump before: ");
     hexdump_aligned(env, addr, 16, 8, 8);
 
-    waitForDebugger();
-
     dump_installed_trappoints_info();
 
     LOGI("Installing hook for FindClass("PRINT_PTR")", (uintptr_t)func);
 
-    install_trap_point(func, TRAP_METHOD_SIGILL_KNOWN_ILLEGAL_INSTR, &trap_point_test_handler, NULL);
+    install_trap_point(func, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, &trap_point_test_handler, NULL);
 
     dump_installed_trappoints_info();
 

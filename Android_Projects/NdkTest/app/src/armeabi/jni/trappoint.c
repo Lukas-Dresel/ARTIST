@@ -4,8 +4,27 @@
 
 #include "trappoint.h"
 
-void sigtrap_handler(int signal, siginfo_t* sigInfo, ucontext_t* context);
 
+static struct list_head installed_trap_points;
+static struct sigaction old_sigtrap_action;
+static struct sigaction old_sigill_action;
+
+static void sigtrap_handler(int, siginfo_t*, ucontext_t*);
+static void sigill_handler(int, siginfo_t*, ucontext_t*);
+static void install_signal_handler(int signal, void* handler, struct sigaction* old_action);
+
+static void install_signal_handler(int signal, void* handler, struct sigaction* old_action)
+{
+    struct sigaction action;
+
+    action.sa_sigaction = handler;
+    action.sa_flags = SA_SIGINFO | SA_RESTART;
+
+    if(sigaction(signal, &action, old_action) != 0)
+    {
+        LOGD("Error installing signal handler for signal #%d: %s", signal, strerror(errno));
+    }
+}
 void init_trap_points()
 {
     /*stack_t sigstk;
@@ -23,24 +42,115 @@ void init_trap_points()
 
     INIT_LIST_HEAD(&installed_trap_points);
 
-    struct sigaction sigtrap_action;
-
-    sigtrap_action.sa_sigaction = (void*)sigtrap_handler;
-    sigtrap_action.sa_flags = SA_SIGINFO;
-
-    if(sigaction(SIGTRAP, &sigtrap_action, &old_sigtrap_action) != 0)
-    {
-        LOGD("Error installing SIGTRAP handler: %s", strerror(errno));
-    }
+    install_signal_handler(SIGTRAP, &sigtrap_handler, &old_sigtrap_action);
+    install_signal_handler(SIGILL,  &sigill_handler,  &old_sigill_action);
 }
 
 void destroy_trap_points()
 {
+    if(sigaction(SIGILL, &old_sigill_action, NULL) != 0)
+    {
+        LOGD("Error uninstalling SIGILLhandler: %s", strerror(errno));
+    }
     if(sigaction(SIGTRAP, &old_sigtrap_action, NULL) != 0)
     {
         LOGD("Error uninstalling SIGTRAP handler: %s", strerror(errno));
     }
 }
+
+bool sigill_handler_trappoint_predicate(TrapPointInfo* trap, void* args)
+{
+    if(trap->trapping_method & TRAP_METHOD_SIG_ILL == 0)
+    {
+        return false;
+    }
+    return trap->target.mem_addr == args;
+}
+
+static void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
+{
+    LOGD("Inside the SIGILL handler..., signal %d, siginfo_t "PRINT_PTR", context "PRINT_PTR, signal, (uintptr_t)sigInfo, (uintptr_t)context);
+
+    mcontext_t* state_info = &(context->uc_mcontext);
+
+    log_siginfo_content(sigInfo);
+    log_mcontext_content(state_info);
+
+    void* target = (void*)state_info->arm_pc;
+
+    LOGD("Looking for trappoints for address "PRINT_PTR".", (uintptr_t)target);
+    TrapPointInfo* trap = find_first_trappoint_with_predicate(sigill_handler_trappoint_predicate, target);
+    if(trap == NULL)
+    {
+        LOGD("Could not locate trappoint, this SIGILL should not originate from us.");
+        LOGD("Uninstalling own signal handler to pass on the SIGTRAP.");
+        sigaction(SIGILL, &old_sigill_action, NULL);
+        return;
+    }
+    LOGD("FOUND trappoint in list! Proceeding with resetting.");
+
+    if(trap->handler != NULL)
+    {
+        LOGI("Executing registered handler at "PRINT_PTR" with arguments("PRINT_PTR", "PRINT_PTR", "PRINT_PTR")",
+             (uintptr_t)(trap->target.mem_addr), (uintptr_t)(context), (uintptr_t)(trap->handler_args));
+
+        trap->handler(trap->target.mem_addr, context, trap->handler_args);
+    }
+    else
+    {
+        LOGI("No trappoint handler was registered, so it wasn't executed.");
+    }
+
+    uninstall_trap_point(trap);
+
+    LOGD("Returning from SIGILL-Handler.");
+}
+bool sigtrap_handler_trappoint_predicate(TrapPointInfo* trap, void* args)
+{
+    if(trap->trapping_method & TRAP_METHOD_SIG_TRAP == 0)
+    {
+        return false;
+    }
+    return trap->target.mem_addr == args;
+}
+static void sigtrap_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
+{
+    mcontext_t* state_info = &(context->uc_mcontext);
+
+    LOGD("Inside the SIGTRAP handler..., signal %d, siginfo_t "PRINT_PTR", context "PRINT_PTR, signal, (uintptr_t)sigInfo, (uintptr_t)context);
+
+    void* target = (void*)state_info->arm_pc;
+
+    LOGD("Looking for trappoints for address "PRINT_PTR".", (uintptr_t)target);
+    TrapPointInfo* trap = find_first_trappoint_with_predicate(sigtrap_handler_trappoint_predicate, target);
+    if(trap == NULL)
+    {
+        LOGD("Could not locate trappoint, this SIGTRAP should not originate from us.");
+        LOGD("Uninstalling own signal handler to pass on the SIGTRAP.");
+        sigaction(SIGTRAP, &old_sigtrap_action, NULL);
+        return;
+    }
+    LOGD("FOUND trappoint in list! Proceeding with resetting.");
+
+    if(trap->handler != NULL)
+    {
+        LOGI("Executing registered handler at "PRINT_PTR" with arguments("PRINT_PTR", "PRINT_PTR", "PRINT_PTR")",
+             (uintptr_t)(trap->target.mem_addr), (uintptr_t)(context), (uintptr_t)(trap->handler_args));
+
+        trap->handler(trap->target.mem_addr, context, trap->handler_args);
+    }
+    else
+    {
+        LOGI("No trappoint handler was registered, so it wasn't executed.");
+    }
+
+    uninstall_trap_point(trap);
+
+    LOGD("Returning from SIGTRAP-Handler.");
+}
+
+
+
 
 TrapPointInfo *install_trap_point(void *addr, uint32_t method, CALLBACK handler, void* additionalArgs)
 {
@@ -124,15 +234,31 @@ void dump_installed_trappoints_info()
         LOGD("FOUND Trappoint for "PRINT_PTR"(%s)", (uintptr_t)current->target.mem_addr, current->target.thumb ? "THUMB" : "ARM");
         LOGD("->Handler function: "PRINT_PTR, (uintptr_t)current->handler);
         LOGD("->Instruction Size: %d", current->instr_size);
+
+        LOGD("->Code Info:      ");
+        if((current->trapping_method & TRAP_METHOD_SIG_ILL) != 0)
+        {
+            LOGD("->Trapping generates SIGILL");
+        }
+        if((current->trapping_method & TRAP_METHOD_SIG_TRAP) != 0)
+        {
+            LOGD("->Trapping generates SIGTRAP");
+        }
+        if((current->trapping_method & TRAP_METHOD_INSTR_BKPT) != 0)
+        {
+            LOGD("->->This is achieved using hardware-specific BKPT instructions.");
+        }
+        if((current->trapping_method & TRAP_METHOD_INSTR_KNOWN_ILLEGAL) != 0)
+        {
+            LOGD("->->This is achieved using hardware-specific known illegal instructions.");
+        }
         if(current->target.thumb)
         {
-            LOGD("->Code Info:      ");
             LOGD("->->Breakpoint:   0x%04x", current->thumbCode.trap_instruction);
             LOGD("->->Preserved:    0x%04x", current->thumbCode.preserved);
         }
         else
         {
-            LOGD("->Code Info:      ");
             LOGD("->->Breakpoint:   0x%08x", current->armCode.trap_instruction);
             LOGD("->->Preserved:    0x%08x", current->armCode.preserved);
         }
@@ -185,4 +311,17 @@ bool validate_TrapPointInfo_contents(TrapPointInfo * trap)
     return true;
 }
 
+
+TrapPointInfo *find_first_trappoint_with_predicate(PREDICATE p, void* args)
+{
+    TrapPointInfo* current;
+    list_for_each_entry(current, &installed_trap_points, installed)
+    {
+        if(p(current, args))
+        {
+            return current;
+        }
+    }
+    return NULL;
+}
 
