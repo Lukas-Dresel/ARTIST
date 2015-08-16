@@ -27,6 +27,11 @@ public class MainActivity extends Activity
 
     private TextView mOutput;
 
+    private void logCoolNumber()
+    {
+        Log.d("MainActivity", "42.42");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -36,7 +41,9 @@ public class MainActivity extends Activity
         this.mOutput = (TextView) this.findViewById(R.id.output);
 
         this.dumpProcessMemoryMap();
-        this.testBreakpointAtoi();
+        //this.testBreakpointAtoi();
+        this.testOverwritingJavaCode();
+        this.logCoolNumber();
 
         try
         {
@@ -76,6 +83,7 @@ public class MainActivity extends Activity
         return super.onOptionsItemSelected(item);
     }
 
+    private native void testOverwritingJavaCode();
     private native void testBreakpointAtoi();
 
     private native void dumpProcessMemoryMap();

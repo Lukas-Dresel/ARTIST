@@ -5,6 +5,8 @@
 #ifndef NDKTEST_ERROR_H
 #define NDKTEST_ERROR_H
 
+#include <stdbool.h>
+
 static const char* no_error = "No Error.";
 static const char* last_error = "No Error.";
 

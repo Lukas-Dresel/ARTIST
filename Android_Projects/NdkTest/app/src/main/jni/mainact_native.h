@@ -44,6 +44,9 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwrite
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwriteOwnFunction(JNIEnv *, jobject);
 
+JNIEXPORT void JNICALL
+Java_com_example_lukas_ndktest_MainActivity_testOverwritingJavaCode(JNIEnv *env, jobject instance);
+
 #endif
 
 

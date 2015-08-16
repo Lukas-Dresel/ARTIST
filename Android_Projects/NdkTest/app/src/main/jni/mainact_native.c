@@ -28,12 +28,17 @@ void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
 }
 
 
-void trap_point_test_handler(void* trap_addr, ucontext_t* context, void* args)
+void handler_change_NewStringUTF_arg(void* trap_addr, ucontext_t* context, void* args)
 {
     LOGI("Inside the trappoint handler...");
     LOGI("Previously Arg1: %x", get_argument(context, 1));
     set_argument(context, 1, (uint32_t)"HALA HALA HALA!");
     LOGI("After overwriting Arg1: %x", get_argument(context, 1));
+}
+void handler_hello_world(void* trap_addr, ucontext_t* context, void* args)
+{
+    LOGD("Inside the trappoint handler...");
+    LOGD("Hello, World!");
 }
 
 void run_trap_point_test(JNIEnv *env)
@@ -48,7 +53,7 @@ void run_trap_point_test(JNIEnv *env)
 
     LOGI("Installing hook for FindClass("PRINT_PTR")", (uintptr_t)func);
 
-    install_trap_point(func, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, &trap_point_test_handler, NULL);
+    install_trap_point(func, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, &handler_change_NewStringUTF_arg, NULL);
 
     dump_installed_trappoints_info();
 
@@ -72,7 +77,19 @@ void run_trap_point_test(JNIEnv *env)
     return;
 }
 
+JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwritingJavaCode(JNIEnv *env, jobject instance)
+{
+    void*       oat_base = (void*)0x7740b000;
+    uint32_t    offset_calling_func_return = 0x5d5f34 + 1/*Thumb*/;
+    uint32_t    interesting_offset = 0x5d5f80;
 
+    waitForDebugger();
+
+    LOGD("Installing higher function trappoint at "PRINT_PTR, (uintptr_t)oat_base + offset_calling_func_return);
+    install_trap_point(oat_base + offset_calling_func_return, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, &handler_hello_world, NULL);
+
+    LOGD("Trappoint installed, let's see if it worked.");
+}
 
 
 /*
@@ -80,9 +97,12 @@ void run_trap_point_test(JNIEnv *env)
  * Method:    testBreakpointAtoi
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpointAtoi (JNIEnv * env, jobject this)
+JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpointAtoi (JNIEnv * env, jobject instance)
 {
-    run_trap_point_test(env);
+    //run_trap_point_test(env);
+    int i = 0;
+
+    waitForDebugger();
 }
 
 /*
