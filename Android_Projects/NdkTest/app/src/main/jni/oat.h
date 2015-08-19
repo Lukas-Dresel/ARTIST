@@ -6,6 +6,7 @@
 #define NDKTEST_OAT_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef enum OatClassType {
     kOatClassAllCompiled = 0,   // OatClass is followed by an OatMethodOffsets for each method.
@@ -59,25 +60,8 @@ typedef struct OatHeader
     uint8_t                 key_value_store_[0];  // note variable width data at end
 } OatHeader;
 
-typedef struct QuickMethodFrameInfo
-{
-    uint32_t frame_size_in_bytes_;
-    uint32_t core_spill_mask_;
-    uint32_t fp_spill_mask_;
-} QuickMethodFrameInfo;
-
-typedef struct OatQuickMethodHeader
-{
-    // The offset in bytes from the start of the mapping table to the end of the header.
-    uint32_t mapping_table_offset_;
-    // The offset in bytes from the start of the vmap table to the end of the header.
-    uint32_t vmap_table_offset_;
-    // The offset in bytes from the start of the gc map to the end of the header.
-    uint32_t gc_map_offset_;
-    // The stack frame information.
-    QuickMethodFrameInfo frame_info_;
-    // The code size in bytes.
-    uint32_t code_size_;
-} OatQuickMethodHeader;
+const char* oat_header_GetStoreValueByKey(OatHeader* this, const char* key);
+bool oat_header_GetStoreKeyValuePairByIndex(OatHeader* this, size_t index, const char** key, const char** value);
+size_t oat_header_GetHeaderSize(OatHeader* this);
 
 #endif //NDKTEST_OAT_H

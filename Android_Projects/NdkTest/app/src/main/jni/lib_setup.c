@@ -6,11 +6,11 @@
 void init()
 {
     init_system_info();
-    init_trap_points();
+    init_trappoints();
 }
 void destroy()
 {
-    destroy_trap_points();
+    destroy_trappoints();
     destroy_system_info();
 }
 

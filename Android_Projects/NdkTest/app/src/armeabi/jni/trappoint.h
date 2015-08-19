@@ -5,39 +5,12 @@
 #ifndef NDKTEST_TRAPPOINT_H
 #define NDKTEST_TRAPPOINT_H
 
-#include <jni.h>
 
-#include <unistd.h>
-#include <sys/mman.h>
-#include <errno.h>
-
-#include <stdlib.h>
-
-#include <stdio.h>
-
-#include <stdbool.h>
 #include <stdint.h>
-#include <inttypes.h>
-#include <ctype.h>
 
-#include <ucontext.h>
-
-#include "../../main/jni/debug_util.h"
 #include "../../main/jni/trappoint_interface.h"
-#include "../../main/jni/memory.h"
-#include "../../main/jni/util.h"
 #include "../../main/jni/list.h"
-#include "../../main/jni/error.h"
-#include "../../main/jni/signal_handling_helper.h"
-
-#include "generate_trap_instruction.h"
-
-typedef struct TargetInfo
-{
-    void*       call_addr;
-    void*       mem_addr;
-    bool        thumb;
-} TargetInfo;
+#include "abi.h"
 
 typedef struct ThumbCodeInfo
 {
@@ -53,10 +26,10 @@ typedef struct ArmCodeInfo
 
 struct TrapPointInfo
 {
-    CALLBACK                handler;
+    TRAPPOINT_CALLBACK handler;
     void*                   handler_args;
 
-    TargetInfo              target;
+    InstructionInfo         target;
 
     uint32_t                instr_size;
 

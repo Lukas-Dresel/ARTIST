@@ -7,6 +7,8 @@
 #include "logging.h"
 #include "util.h"
 #include "memory.h"
+#include "system_info.h"
+#include "oat_parser.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -44,7 +46,7 @@ void handler_hello_world(void* trap_addr, ucontext_t* context, void* args)
 void run_trap_point_test(JNIEnv *env)
 {
     void* func = (*env)->NewStringUTF;
-    void* addr = (unsigned short *)getCodeBaseAddress(func);
+    void* addr = (unsigned short *) get_code_base_address(func);
 
     LOGI("Hexdump before: ");
     hexdump_aligned(env, addr, 16, 8, 8);
@@ -53,7 +55,8 @@ void run_trap_point_test(JNIEnv *env)
 
     LOGI("Installing hook for FindClass("PRINT_PTR")", (uintptr_t)func);
 
-    install_trap_point(func, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, &handler_change_NewStringUTF_arg, NULL);
+    install_trappoint(func, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
+                      &handler_change_NewStringUTF_arg, NULL);
 
     dump_installed_trappoints_info();
 
@@ -79,14 +82,20 @@ void run_trap_point_test(JNIEnv *env)
 
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwritingJavaCode(JNIEnv *env, jobject instance)
 {
-    void*       oat_base = (void*)0x7740b000;
+    waitForDebugger();
+
+    dump_process_memory_map();
+    void*       elf_oat_base = (void*)0x7740b000;
+    hexdump()
+    void*       elf_oat_end  = (void*)0xAFFFFFFF;
+    log_elf_oat_file_info(elf_oat_base, elf_oat_end);
     uint32_t    offset_calling_func_return = 0x5d5f34 + 1/*Thumb*/;
     uint32_t    interesting_offset = 0x5d5f80;
 
-    waitForDebugger();
-
-    LOGD("Installing higher function trappoint at "PRINT_PTR, (uintptr_t)oat_base + offset_calling_func_return);
-    install_trap_point(oat_base + offset_calling_func_return, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, &handler_hello_world, NULL);
+    LOGD("Installing higher function trappoint at "PRINT_PTR, (uintptr_t)elf_oat_base + offset_calling_func_return);
+    install_trappoint(elf_oat_base + offset_calling_func_return,
+                      TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, &handler_hello_world,
+                      NULL);
 
     LOGD("Trappoint installed, let's see if it worked.");
 }
@@ -99,10 +108,9 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwriti
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpointAtoi (JNIEnv * env, jobject instance)
 {
-    //run_trap_point_test(env);
-    int i = 0;
-
     waitForDebugger();
+
+    run_trap_point_test(env);
 }
 
 /*
@@ -112,22 +120,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpoin
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcessMemoryMap (JNIEnv * env, jobject this)
 {
-    char buff[3200];
-
-    FILE* fp = fopen("/proc/self/maps", "r");
-    while( fgets (buff, sizeof(buff), fp) != NULL )
-    {
-        LOGI("MemoryMap: %s", buff);
-    }
-    if(feof(fp))
-    {
-        LOGI("MemoryMap: %s", "#################### END OF MEMORY MAP ###################");
-    }
-    if(ferror(fp))
-    {
-        LOGI("MemoryMap: %s", "#################### ERROR READING /proc/self/maps ###################");
-    }
-    fclose(fp);
+    dump_process_memory_map();
 }
 
 #ifdef __cplusplus

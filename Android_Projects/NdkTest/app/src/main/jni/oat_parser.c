@@ -6,11 +6,21 @@
 
 #include "error.h"
 #include "logging.h"
+#include "elf_file.h"
 
-OatHeader* parse_oat_file(void* address)
+void log_elf_oat_file_info(void* start, void* end)
 {
-    OatHeader* header = (OatHeader*)address;
-    return header;
+    ElfFile elf_file;
+    elf_file_SetupFromMemory(&elf_file, start, end, false);
+    Elf32_Shdr* hdr = elf_file_FindSectionByName(&elf_file, ".rodata");
+    if(hdr == NULL)
+    {
+        LOGF("Could not find section .rodata");
+        return;
+    }
+    OatHeader* header = (OatHeader*)(elf_file.container.begin + hdr->sh_offset);
+    log_oat_header_info(header);
+    return;
 }
 
 char* get_instruction_set_representation(InstructionSet set)
@@ -38,13 +48,7 @@ char* get_instruction_set_representation(InstructionSet set)
             return "UNKNOWN INSTRUCTION SET";
     }
 }
-static const char* parse_string(const char* start, const char* end)
-{
-    while (start < end && *start != 0) {
-        start++;
-    }
-    return start;
-}
+
 void log_oat_header_info(OatHeader* hdr)
 {
     LOGD("Oat Header Information:");
@@ -86,6 +90,14 @@ void log_oat_header_info(OatHeader* hdr)
 }
 void log_key_value_store_info(OatHeader* hdr)
 {
-    // TODO implement
+    size_t index = 0;
+    const char* key;
+    const char* value;
+    LOGD("Key-Value Store: ");
+    while (oat_header_GetStoreKeyValuePairByIndex(hdr, index, &key, &value))
+    {
+        LOGD("%s = %s", key, value);
+        index++;
+    }
     return;
 }

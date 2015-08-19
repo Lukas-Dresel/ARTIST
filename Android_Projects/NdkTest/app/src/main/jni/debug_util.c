@@ -5,7 +5,7 @@
 void waitForDebugger()
 {
     #ifdef DEBUG_WAIT
-    volatile bool run = false;
+    volatile bool run = true;
     #else
     volatile bool run = true;
     #endif

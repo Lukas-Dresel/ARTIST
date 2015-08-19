@@ -3,6 +3,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <ctype.h>
 
 bool iterate_byte_array_chunks(JNIEnv* env, const void* addr, jlong numBytes, jlong bytesPerLine, OUTPUT_CALLBACK output, void* additionalInfo)
 {
@@ -63,7 +64,7 @@ bool set_memory_protection(void *startingAddress, jlong numBytes, jboolean read,
 
     LOGD("Protections combined.");
 
-    void* addr = getPageBaseAddress(startingAddress);
+    void* addr = get_page_base(startingAddress);
     jlong size = numBytes + (startingAddress - addr);
 
     LOGD("Attempting to change memory permissions to %x...", protections);
@@ -79,12 +80,23 @@ bool set_memory_protection(void *startingAddress, jlong numBytes, jboolean read,
 static bool hexdump_callback(void* addr, uint64_t currentOffset, int numBytes, void* additionalInfo)
 {
     unsigned char dump[3 * numBytes + 1];
+    unsigned char ascii[numBytes + 1];
     unsigned char* target = (unsigned char*)(addr + currentOffset);
     for(int byteInLine = 0; byteInLine < numBytes; byteInLine++)
     {
-        sprintf(&dump[byteInLine * 3], "%02x ", target[byteInLine]);
+        char c = target[byteInLine];
+        sprintf(&dump[byteInLine * 3], "%02x ", c);
+        if(!isprint(c))
+        {
+            ascii[byteInLine] = '.';
+        }
+        if(c == '\r' || c == '\n' || c == '\t')
+        {
+            ascii[byteInLine] = '.';
+        }
+        ascii[byteInLine] = c;
     }
-    LOGD("Hexdump: "PRINT_PTR" => %s", (uintptr_t)target, dump);
+    LOGD("Hexdump: "PRINT_PTR" => %s | ", (uintptr_t)target, dump);
     return true;
 }
 
@@ -109,7 +121,7 @@ bool hexdump_aligned(JNIEnv* env, const void* addr, jlong numBytes, jlong bytesP
         throwNewJNIException(env, "java/lang/RuntimeException", "Hexdump: Error alignment == 0");
         return false;
     }
-    const unsigned char* aligned = (unsigned char*)alignAddressToSize(addr, alignment);
+    const unsigned char* aligned = (unsigned char*) align_address_to_size(addr, alignment);
     uint64_t size = numBytes + ((unsigned char*)addr - aligned);
     return iterate_byte_array_chunks(env, aligned, size, bytesPerLine, (OUTPUT_CALLBACK)hexdump_callback, NULL);
 }
@@ -120,7 +132,7 @@ bool hexdump_aligned_primitive(const void* addr, jlong numBytes, jlong bytesPerL
     {
         return false;
     }
-    const unsigned char* aligned = (unsigned char*)alignAddressToSize(addr, alignment);
+    const unsigned char* aligned = (unsigned char*) align_address_to_size(addr, alignment);
     uint64_t size = numBytes + ((unsigned char*)addr - aligned);
     return iterate_byte_array_chunks_primitive(aligned, size, bytesPerLine, (OUTPUT_CALLBACK)hexdump_callback, NULL);
 }

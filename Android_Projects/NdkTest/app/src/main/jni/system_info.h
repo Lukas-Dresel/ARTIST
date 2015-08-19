@@ -11,6 +11,8 @@ void destroy_system_info();
 
 long getSystemPageSize();
 
+void dump_process_memory_map(void);
+
 #endif
 
 

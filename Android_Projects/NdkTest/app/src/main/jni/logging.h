@@ -5,6 +5,7 @@
 #include <inttypes.h>
 
 #include "config.h"
+#include "macros.h"
 
 #define LOG_TAG "jni_mainact_native"
 
@@ -27,23 +28,33 @@
 #endif
 
 #if LOG_LEVEL <= LOG_LEVEL_WARN
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, "["__FILE__":"__LINE_STRING__"]"__VA_ARGS__)
 #else
 #define LOW(...)
 #endif
 
 #if LOG_LEVEL <= LOG_LEVEL_ERROR
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, "["__FILE__":"__LINE_STRING__"]"__VA_ARGS__)
 #else
 #define LOGE(...)
 #endif
 
 #if LOG_LEVEL <= LOG_LEVEL_FATAL
-#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL, LOG_TAG, __VA_ARGS__)
+#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL, LOG_TAG, "["__FILE__":"__LINE_STRING__"]"__VA_ARGS__)
 #else
 #define LOGF(...)
 #endif
 
+#define CHECK(x) \
+  if (UNLIKELY(!(x))) \
+    LOGF( "Check failed: %s", #x );
+
+#define CHECK_EQ(x, y) CHECK((x) == (y))
+#define CHECK_NE(x, y) CHECK((x) != (y))
+#define CHECK_LE(x, y) CHECK((x) <= (y))
+#define CHECK_LT(x, y) CHECK((x) < (y))
+#define CHECK_GE(x, y) CHECK((x) >= (y))
+#define CHECK_GT(x, y) CHECK((x) > (y))
 
 #define PRINT_PTR "0x%016"PRIxPTR
 

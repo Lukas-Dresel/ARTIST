@@ -4,8 +4,16 @@
 
 #include "trappoint.h"
 
+#include "../../main/jni/logging.h"
+#include "../../main/jni/signal_handling_helper.h"
+#include "../../main/jni/util.h"
+#include "../../main/jni/memory.h"
+#include "../../main/jni/error.h"
 
-static struct list_head installed_trap_points;
+#include "generate_trap_instruction.h"
+
+
+static struct list_head installed_trappoints;
 static struct sigaction old_sigtrap_action;
 static struct sigaction old_sigill_action;
 
@@ -25,7 +33,7 @@ static void install_signal_handler(int signal, void* handler, struct sigaction* 
         LOGD("Error installing signal handler for signal #%d: %s", signal, strerror(errno));
     }
 }
-void init_trap_points()
+void init_trappoints()
 {
     /*stack_t sigstk;
     if ((sigstk.ss_sp = malloc(SIGSTKSZ)) == NULL)
@@ -40,13 +48,13 @@ void init_trap_points()
         perror("sigaltstack");
     }*/
 
-    INIT_LIST_HEAD(&installed_trap_points);
+    INIT_LIST_HEAD(&installed_trappoints);
 
     install_signal_handler(SIGTRAP, &sigtrap_handler, &old_sigtrap_action);
     install_signal_handler(SIGILL,  &sigill_handler,  &old_sigill_action);
 }
 
-void destroy_trap_points()
+void destroy_trappoints()
 {
     if(sigaction(SIGILL, &old_sigill_action, NULL) != 0)
     {
@@ -101,7 +109,7 @@ static void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
         LOGI("No trappoint handler was registered, so it wasn't executed.");
     }
 
-    uninstall_trap_point(trap);
+    uninstall_trappoint(trap);
 
     LOGD("Returning from SIGILL-Handler.");
 }
@@ -144,7 +152,7 @@ static void sigtrap_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
         LOGI("No trappoint handler was registered, so it wasn't executed.");
     }
 
-    uninstall_trap_point(trap);
+    uninstall_trappoint(trap);
 
     LOGD("Returning from SIGTRAP-Handler.");
 }
@@ -152,7 +160,8 @@ static void sigtrap_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
 
 
 
-TrapPointInfo *install_trap_point(void *addr, uint32_t method, CALLBACK handler, void* additionalArgs)
+TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK handler,
+                                 void *additionalArgs)
 {
     if(addr == NULL)
     {
@@ -165,8 +174,8 @@ TrapPointInfo *install_trap_point(void *addr, uint32_t method, CALLBACK handler,
         trap->handler_args = additionalArgs;
 
         trap->target.call_addr = addr;
-        trap->target.mem_addr = getCodeBaseAddress(addr);
-        trap->target.thumb = (getCodeBaseOffset(addr) == 1);
+        trap->target.mem_addr = get_code_base_address(addr);
+        trap->target.thumb = (get_code_base_offset(addr) == 1);
 
         trap->instr_size = trap->target.thumb ? 2 : 4;
         trap->trapping_method = method;
@@ -192,14 +201,14 @@ TrapPointInfo *install_trap_point(void *addr, uint32_t method, CALLBACK handler,
             __builtin___clear_cache((void*)trap->target.mem_addr, (void*)trap->target.mem_addr + trap->instr_size);
 
             // Installation succeeded, so insert ourself into the installed trap point list
-            list_add(&trap->installed, &installed_trap_points);
+            list_add(&trap->installed, &installed_trappoints);
             return trap;
         }
         free(trap);
     }
     return NULL;
 }
-void uninstall_trap_point(TrapPointInfo * trap)
+void uninstall_trappoint(TrapPointInfo *trap)
 {
     if(!validate_TrapPointInfo_contents(trap))
     {
@@ -229,7 +238,7 @@ void dump_installed_trappoints_info()
 {
     LOGD("Dumping information on installed trappoints.");
     TrapPointInfo* current;
-    list_for_each_entry(current, &installed_trap_points, installed)
+    list_for_each_entry(current, &installed_trappoints, installed)
     {
         LOGD("FOUND Trappoint for "PRINT_PTR"(%s)", (uintptr_t)current->target.mem_addr, current->target.thumb ? "THUMB" : "ARM");
         LOGD("->Handler function: "PRINT_PTR, (uintptr_t)current->handler);
@@ -279,7 +288,7 @@ bool validate_TrapPointInfo_contents(TrapPointInfo * trap)
     }
     if(trap->target.thumb)
     {
-        if(getCodeBaseOffset(trap->target.call_addr) != 1)
+        if(get_code_base_offset(trap->target.call_addr) != 1)
         {
             set_last_error("How can the thumb mode be set if the call address doesn't have the least significant bit set?");
             return false;
@@ -292,7 +301,7 @@ bool validate_TrapPointInfo_contents(TrapPointInfo * trap)
     }
     else
     {
-        if(getCodeBaseOffset(trap->target.call_addr) != 0)
+        if(get_code_base_offset(trap->target.call_addr) != 0)
         {
             set_last_error("How can the thumb mode not be set if the call address has the least significant bit set?");
             return false;
@@ -312,10 +321,10 @@ bool validate_TrapPointInfo_contents(TrapPointInfo * trap)
 }
 
 
-TrapPointInfo *find_first_trappoint_with_predicate(PREDICATE p, void* args)
+TrapPointInfo *find_first_trappoint_with_predicate(TRAPPOINT_PREDICATE p, void* args)
 {
     TrapPointInfo* current;
-    list_for_each_entry(current, &installed_trap_points, installed)
+    list_for_each_entry(current, &installed_trappoints, installed)
     {
         if(p(current, args))
         {
