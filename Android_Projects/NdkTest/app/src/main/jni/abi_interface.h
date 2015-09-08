@@ -6,7 +6,6 @@
 #define NDKTEST_ABI_INTERFACE_H
 
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <ucontext.h>
@@ -14,9 +13,11 @@
 struct InstructionInfo;
 typedef struct InstructionInfo InstructionInfo;
 
-uint32_t get_argument(ucontext_t* c, unsigned int index);
-void set_argument(ucontext_t* c, unsigned int index, uint32_t val);
-InstructionInfo extract_next_executed_instruction(ucontext_t* ctx);
+uint32_t get_argument(ucontext_t *c, unsigned int index);
+
+void set_argument(ucontext_t *c, unsigned int index, uint32_t val);
+
+InstructionInfo extract_next_executed_instruction(ucontext_t *ctx);
 
 
 #endif //NDKTEST_ABI_H

@@ -167,7 +167,7 @@ TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK
     {
         return NULL;
     }
-    TrapPointInfo* trap = malloc(sizeof(TrapPointInfo));
+    TrapPointInfo* trap = allocate_memory_chunk(sizeof(TrapPointInfo));
     if(trap != NULL)
     {
         trap->handler = handler;
@@ -204,7 +204,7 @@ TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK
             list_add(&trap->installed, &installed_trappoints);
             return trap;
         }
-        free(trap);
+        free_memory_chunk(trap);
     }
     return NULL;
 }
@@ -231,7 +231,7 @@ void uninstall_trappoint(TrapPointInfo *trap)
         __builtin___clear_cache((void*)trap->target.mem_addr, (void*)trap->target.mem_addr + trap->instr_size);
     }
     list_del(&trap->installed);
-    free(trap);
+    free_memory_chunk(trap);
 }
 
 void dump_installed_trappoints_info()

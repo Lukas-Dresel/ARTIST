@@ -16,20 +16,24 @@
 struct TrapPointInfo;
 typedef struct TrapPointInfo TrapPointInfo;
 
-typedef void (*TRAPPOINT_CALLBACK)(void* addr, ucontext_t* ctx, void* additionalArg);
+typedef void (*TRAPPOINT_CALLBACK)(void *addr, ucontext_t *ctx, void *additionalArg);
 
-typedef bool (*TRAPPOINT_PREDICATE)(TrapPointInfo* trap, void* args);
+typedef bool (*TRAPPOINT_PREDICATE)(TrapPointInfo *trap, void *args);
 
-void            init_trappoints();
-void            destroy_trappoints();
+void init_trappoints();
 
-TrapPointInfo*  install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK handler, void *additionalArg);
-void            uninstall_trappoint(TrapPointInfo *trap);
+void destroy_trappoints();
 
-TrapPointInfo*  find_first_trappoint_with_predicate(TRAPPOINT_PREDICATE p, void* args);
+TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK handler,
+                                 void *additionalArg);
 
-void            dump_installed_trappoints_info();
-bool            validate_TrapPointInfo_contents(TrapPointInfo * trap);
+void uninstall_trappoint(TrapPointInfo *trap);
+
+TrapPointInfo *find_first_trappoint_with_predicate(TRAPPOINT_PREDICATE p, void *args);
+
+void dump_installed_trappoints_info();
+
+bool validate_TrapPointInfo_contents(TrapPointInfo *trap);
 
 
 #endif //NDKTEST_TRAPPOINT_INTERFACE_H

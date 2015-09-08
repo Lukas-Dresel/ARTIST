@@ -7,9 +7,12 @@
 
 #include <stdbool.h>
 
-void set_last_error(const char* c);
+void set_last_error(const char *c);
+
 bool error_occurred();
-const char* get_last_error();
+
+const char *get_last_error();
+
 void clear_last_error();
 
 #endif //NDKTEST_ERROR_H

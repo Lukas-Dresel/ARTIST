@@ -7,10 +7,12 @@
 
 #include <ucontext.h>
 
-uint32_t    get_argument(ucontext_t* c, unsigned int index);
-void        set_argument(ucontext_t* c, unsigned int index, uint32_t val);
+uint32_t get_argument(ucontext_t *c, unsigned int index);
 
-void        log_siginfo_content(siginfo_t* info);
-void        log_mcontext_content(mcontext_t* state_info);
+void set_argument(ucontext_t *c, unsigned int index, uint32_t val);
+
+void log_siginfo_content(siginfo_t *info);
+
+void log_mcontext_content(mcontext_t *state_info);
 
 #endif //NDKTEST_SIGNAL_HANDLING_HELPER_H

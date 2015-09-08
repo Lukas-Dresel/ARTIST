@@ -64,7 +64,7 @@ extern "C" {
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpointAtoi
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 /*
  * Class:     com_example_lukas_ndktest_MainActivity
@@ -72,7 +72,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpoin
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcessMemoryMap
-  (JNIEnv *, jobject);
+        (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }

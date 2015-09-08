@@ -30,6 +30,7 @@ model {
     android.ndk {
         moduleName = "NdkTest"
         ldLibs += "log"
+        ldLibs += "dl"
         CFlags += "-marm"
         CFlags += "--std=gnu99"
         CFlags += "-Wno-pointer-to-int-cast"

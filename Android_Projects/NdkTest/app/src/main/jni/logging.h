@@ -7,7 +7,11 @@
 #include "config.h"
 #include "macros.h"
 
-#define LOG_TAG "jni_mainact_native"
+#include <string.h>
+#include <jni.h>
+#include <stdbool.h>
+
+#define LOG_TAG "jni"
 
 #if LOG_LEVEL <= LOG_LEVEL_VERBOSE
 #define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__)
@@ -56,7 +60,18 @@
 #define CHECK_GE(x, y) CHECK((x) >= (y))
 #define CHECK_GT(x, y) CHECK((x) > (y))
 
-#define PRINT_PTR "0x%016"PRIxPTR
+#define PRINT_PTR "0x%08"PRIxPTR
+
+bool hexdump(JNIEnv *env, const void *addr, jlong numBytes, jlong bytesPerLine);
+
+bool hexdump_primitive(const void *addr, jlong numBytes, jlong bytesPerLine);
+
+bool hexdump_aligned(JNIEnv *env, const void *addr, jlong numBytes, jlong bytesPerLine,
+                     jlong alignment);
+
+bool hexdump_aligned_primitive(const void *addr, jlong numBytes, jlong bytesPerLine,
+                               jlong alignment);
+
 
 #endif
 

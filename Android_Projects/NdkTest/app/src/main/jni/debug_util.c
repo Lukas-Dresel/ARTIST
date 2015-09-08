@@ -4,14 +4,14 @@
 
 void waitForDebugger()
 {
-    #ifdef DEBUG_WAIT
+#ifdef DEBUG_WAIT
+    volatile bool run = false;
+#else
     volatile bool run = true;
-    #else
-    volatile bool run = true;
-    #endif
+#endif
 
     int i = 0;
-    while(!run)
+    while (!run)
     {
         i++;
     }

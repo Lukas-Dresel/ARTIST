@@ -7,6 +7,7 @@
 #include "logging.h"
 
 void init_system_info();
+
 void destroy_system_info();
 
 long getSystemPageSize();

@@ -8,6 +8,7 @@ void init()
     init_system_info();
     init_trappoints();
 }
+
 void destroy()
 {
     destroy_trappoints();

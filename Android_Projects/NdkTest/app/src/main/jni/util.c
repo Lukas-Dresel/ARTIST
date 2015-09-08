@@ -13,10 +13,11 @@ uint64_t round_down(uint64_t value, uint64_t size)
 {
     return value - (value % size);
 }
+
 uint64_t round_up(uint64_t value, uint64_t size)
 {
     uint64_t rounded_down = round_down(value, size);
-    if(rounded_down == value)
+    if (rounded_down == value)
     {
         return value;
     }
@@ -28,8 +29,8 @@ void *align_address_to_size(const void *addr, uint64_t size)
     return (void *) round_down((uint64_t) addr, size);
 }
 
- void *get_page_base(const void *address)
- {
+void *get_page_base(const void *address)
+{
     return align_address_to_size(address, getSystemPageSize());
 }
 
