@@ -3,7 +3,11 @@
 //
 
 #include "oat_dex_file_storage.h"
+
+#include "oat_info.h"
 #include "memory.h"
+#include "logging.h"
+
 
 LazyOatDexFileStorage *oat_dex_file_storage_Initialize(LazyOatInfo *oat)
 {
@@ -15,7 +19,7 @@ LazyOatDexFileStorage *oat_dex_file_storage_Initialize(LazyOatInfo *oat)
         return NULL;
     }
 
-    void *dex_file_storage = oat_info_GetDexFileStorageOffset(oat);
+    void *dex_file_storage = oat_info_GetDexFileStoragePointer(oat);
     if (UNLIKELY(NULL == dex_file_storage))
     {
         return NULL;
@@ -24,8 +28,7 @@ LazyOatDexFileStorage *oat_dex_file_storage_Initialize(LazyOatInfo *oat)
     size_t header_size = sizeof(LazyOatDexFileStorage); // header size
 
     // We need 1 entry more so that we can use [index, index + 1] as boundaries.
-    size_t memory_locations_size =
-            sizeof(void *) * (hdr->dex_file_count_ + 1);      // Memory Offset Array
+    size_t memory_locations_size = sizeof(void *) * (hdr->dex_file_count_ + 1);      // Memory Offset Array
     size_t dex_file_contents_size = sizeof(OatDexFileInfo) * hdr->dex_file_count_;
 
     size_t needed_size = header_size + memory_locations_size + dex_file_contents_size;
@@ -52,7 +55,7 @@ LazyOatDexFileStorage *oat_dex_file_storage_Initialize(LazyOatInfo *oat)
     return self;
 }
 
-OatDexFileInfo *oat_dex_file_storage_GetOatDexFileInfo(LazyOatDexFileStorage *self, uint32_t index)
+OatDexFileInfo* oat_dex_file_storage_GetOatDexFileInfo(LazyOatDexFileStorage *self, uint32_t index)
 {
     CHECK(self != NULL);
     CHECK(self->dex_file_count > 0U);
@@ -64,14 +67,13 @@ OatDexFileInfo *oat_dex_file_storage_GetOatDexFileInfo(LazyOatDexFileStorage *se
         // Our OatDexFile has been located already
         return &(self->dex_file_contents[index]);
     }
-    CHECK(self->dex_file_contents->memory_location == NULL)
+    CHECK(self->memory_locations[0] != NULL); // Sanity Check, this should be set in Initialize
     // Our OatDexFile hasn't been located yet, keep locating new ones.
     for (uint32_t current_index = self->last_initialized_memory_location_index;
          current_index <= index; current_index++)
     {
         byte *content_element = self->memory_locations[current_index];
-        CHECK(content_element <
-              self->oat_info->end); // at the start of the loop our index should not be out of range
+        CHECK(content_element < self->oat_info->end); // at the start of the loop our index should not be out of range
 
         uint32_t oat_dex_file_location_size = *((uint32_t *) content_element);
         CHECK(oat_dex_file_location_size > 0U);
@@ -86,7 +88,6 @@ OatDexFileInfo *oat_dex_file_storage_GetOatDexFileInfo(LazyOatDexFileStorage *se
 
         char *oat_dex_file_location = (char *) content_element;
         CHECK(strlen(oat_dex_file_location) != 0);
-        CHECK(strlen(oat_dex_file_location) == (oat_dex_file_location_size - 1));
         content_element += oat_dex_file_location_size;
         if (UNLIKELY(content_element > self->oat_info->end))
         {
@@ -115,7 +116,7 @@ OatDexFileInfo *oat_dex_file_storage_GetOatDexFileInfo(LazyOatDexFileStorage *se
         info->dex_file_pointer = self->oat_info->begin + oat_dex_file_offset;
 
         DexFileHeader *dex_header = (DexFileHeader *) info->dex_file_pointer;
-        if (UNLIKELY(dex_header > self->oat_info->begin))
+        if (UNLIKELY(dex_header > self->oat_info->end))
         {
             LOGF("OatDexFile %d: Dex File Pointer points outside the valid memory range.",
                  current_index);
@@ -138,9 +139,6 @@ OatDexFileInfo *oat_dex_file_storage_GetOatDexFileInfo(LazyOatDexFileStorage *se
 
         // We are all done with this one, set the memory location and references
         info->memory_location = self->memory_locations[current_index];
-        info->oat_info = self->oat_info;
-        info->oat_dex_file_storage = self;
-        info->index = current_index;
         self->memory_locations[current_index + 1] = content_element;
     }
     return &(self->dex_file_contents[index]);
@@ -158,7 +156,7 @@ void *oat_dex_file_storage_GetOatDexFileLocation(LazyOatDexFileStorage *self, ui
         // Our OatDexFile has been located already
         return self->memory_locations[index];
     }
-    OatDexFileInfo *info = oat_dex_file_storage_GetOatDexFileLocation(self, index);
+    OatDexFileInfo *info = oat_dex_file_storage_GetOatDexFileInfo(self, index);
     if (NULL == info)
     {
         return NULL;

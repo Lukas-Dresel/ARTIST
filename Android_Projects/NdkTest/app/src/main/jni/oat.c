@@ -7,6 +7,10 @@
 #include <sys/types.h>
 #include "oat.h"
 #include "logging.h"
+#include "typedefs.h"
+#include "dex.h"
+#include "oat_dex_file_storage.h"
+#include "oat_info.h"
 
 
 #define CASE_ENUM_REPR(x) case (x): \
@@ -98,7 +102,7 @@ char *repr_InstructionSetFeatures(uint32_t f)
 
 #undef CASE_ENUM_REPR
 
-static const char *oat_header_ParseString(const char *start, const char *end)
+static const char *oat_file_ParseString(const char *start, const char *end)
 {
     while (start < end && *start != 0)
     {
@@ -107,20 +111,20 @@ static const char *oat_header_ParseString(const char *start, const char *end)
     return start;
 }
 
-const char *oat_header_GetStoreValueByKey(OatHeader *this, const char *key)
+const char *oat_GetStoreValueByKey(OatHeader *this, const char *key)
 {
     const char *ptr = (const char *) (&this->key_value_store_);
     const char *end = ptr + this->key_value_store_size_;
     while (ptr < end)
     {
         // Scan for a closing zero.
-        const char *str_end = oat_header_ParseString(ptr, end);
+        const char *str_end = oat_file_ParseString(ptr, end);
         if (str_end < end)
         {
             if (strcmp(key, ptr) == 0)
             {
                 // Same as key. Check if value is OK.
-                if (oat_header_ParseString(str_end + 1, end) < end)
+                if (oat_file_ParseString(str_end + 1, end) < end)
                 {
                     return str_end + 1;
                 }
@@ -128,7 +132,7 @@ const char *oat_header_GetStoreValueByKey(OatHeader *this, const char *key)
             else
             {
                 // Different from key. Advance over the value.
-                ptr = oat_header_ParseString(str_end + 1, end) + 1;
+                ptr = oat_file_ParseString(str_end + 1, end) + 1;
             }
         }
         else
@@ -140,8 +144,8 @@ const char *oat_header_GetStoreValueByKey(OatHeader *this, const char *key)
     return NULL;
 }
 
-bool oat_header_GetStoreKeyValuePairByIndex(OatHeader *this, size_t index, const char **key,
-                                            const char **value)
+bool oat_GetStoreKeyValuePairByIndex(OatHeader *this, size_t index, const char **key,
+                                     const char **value)
 {
     const char *ptr = (const char *) (&this->key_value_store_);
     const char *end = ptr + this->key_value_store_size_;
@@ -149,11 +153,11 @@ bool oat_header_GetStoreKeyValuePairByIndex(OatHeader *this, size_t index, const
     while (ptr < end && counter >= 0)
     {
         // Scan for a closing zero.
-        const char *str_end = oat_header_ParseString(ptr, end);
+        const char *str_end = oat_file_ParseString(ptr, end);
         if (str_end < end)
         {
             const char *maybe_key = ptr;
-            ptr = oat_header_ParseString(str_end + 1, end) + 1;
+            ptr = oat_file_ParseString(str_end + 1, end) + 1;
             if (ptr <= end)
             {
                 if (counter == 0)
@@ -180,3 +184,4 @@ bool oat_header_GetStoreKeyValuePairByIndex(OatHeader *this, size_t index, const
     // Not found.
     return false;
 }
+

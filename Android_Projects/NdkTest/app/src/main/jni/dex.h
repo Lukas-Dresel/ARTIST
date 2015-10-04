@@ -7,6 +7,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "util.h"
+#include "typedefs.h"
 
 static const size_t kSha1DigestSize = 20;
 static const uint32_t kDexEndianConstant = 0x12345678;
@@ -66,12 +68,93 @@ typedef struct ClassDef
     uint32_t class_data_off_;  // file offset to class_data_item
     uint32_t static_values_off_;  // file offset to EncodedArray
 } ClassDef;
+typedef bool (*CLASSDEF_PREDICATE)(const DexFileHeader* hdr, ClassDef* c, void* args);
 
 // Raw string_id_item.
 typedef struct StringId
 {
     uint32_t string_data_off_;  // offset in bytes from the base address
 } StringId;
+typedef bool (*STRINGID_PREDICATE)(const DexFileHeader* hdr, StringId* c, void* args);
+
+// Raw method_id_item.
+typedef struct MethodId
+{
+    uint16_t class_idx_;  // index into type_ids_ array for defining class
+    uint16_t proto_idx_;  // index into proto_ids_ array for method prototype
+    uint32_t name_idx_;  // index into string_ids_ array for method name
+} MethodId;
+typedef bool (*METHODID_PREDICATE)(const DexFileHeader* hdr, MethodId* c, void* args);
+
+// Raw proto_id_item.
+typedef struct ProtoId
+{
+    uint32_t shorty_idx_;       // index into string_ids array for shorty descriptor
+    uint16_t return_type_idx_;  // index into type_ids array for return type
+    uint16_t pad_;             // padding = 0
+    uint32_t parameters_off_;  // file offset to type_list for parameter types
+} ProtoId;
+typedef bool (*PROTOID_PREDICATE)(const DexFileHeader* hdr, ProtoId* c, void* args);
+
+
+// Raw type_id_item.
+typedef struct TypeId
+{
+    uint32_t descriptor_idx_;  // index into string_ids
+} TypeId;
+typedef bool (*TYPEID_PREDICATE)(const DexFileHeader* hdr, TypeId* c, void* args);
+
+// Raw field_id_item.
+typedef struct FieldId
+{
+    uint16_t class_idx_;  // index into type_ids_ array for defining class
+    uint16_t type_idx_;  // index into type_ids_ array for field type
+    uint32_t name_idx_;  // index into string_ids_ array for field name
+} FieldId;
+typedef bool (*FIELDID_PREDICATE)(const DexFileHeader* hdr, FieldId* c, void* args);
+
+// Raw code_item.
+typedef struct CodeItem {
+    uint16_t registers_size_;
+    uint16_t ins_size_;
+    uint16_t outs_size_;
+    uint16_t tries_size_;
+    uint32_t debug_info_off_;  // file offset to debug info stream
+    uint32_t insns_size_in_code_units_;  // size of the insns array, in 2 byte code units
+    uint16_t insns_[1];
+} CodeItem;
+
+/**
+ * @param hdr       -   Pointer to the DexFileHeader at the beginning of the dex_file.
+ * @param string_id -   Id of the string to get the contents of.
+ *
+ * @return  A String struct containing the length of the string, and a pointer to it's characters
+ */
+String      dex_file_GetStringDataByIndex(const DexFileHeader* hdr, uint32_t string_id);
+
+String      dex_file_GetClassDefName(const DexFileHeader* hdr, uint32_t class_def_index);
+String      dex_file_GetMethodIdName(const DexFileHeader* hdr, uint32_t method_id_index);
+String      dex_file_GetTypeIdName(const DexFileHeader* hdr, uint32_t type_id_index);
+String      dex_file_GetFieldIdName(const DexFileHeader* hdr, uint32_t field_id_index);
+
+/**
+ * @param hdr       -   Pointer to the DexFileHeader at the beginning of the dex_file.
+ * @param original_class_def_index  -   Index into the class_def array of the original class
+ *
+ * @return  Index into the class_def array of the superclass of our original_class_def_index
+ *          or kDexNoIndex if the class has no superclass.
+ */
+uint32_t    dex_file_FindSuperClassDefinitionIndex(const DexFileHeader* hdr, uint32_t original_class_def_index);
+uint32_t    dex_file_FindClassDefinitionIndicesByPredicate(const DexFileHeader *hdr,
+                                                           CLASSDEF_PREDICATE p, void *args,
+                                                           uint32_t *result, uint32_t maxResults);
+ClassDef    dex_file_GetClassDefinitionByIndex(const DexFileHeader* hdr, uint32_t class_def_index);
+ProtoId     dex_file_GetMethodPrototypeByIndex(const DexFileHeader* hdr, uint32_t proto_id);
+MethodId    dex_file_GetMethodDescriptorByIndex(const DexFileHeader* hdr, uint32_t method_id);
+uint32_t    dex_file_FindMethodDescriptorIndicesByPredicate(const DexFileHeader* hdr, METHODID_PREDICATE p, void* args,
+                                                         uint32_t* result, uint32_t maxResults);
+TypeId      dex_file_GetTypeDescriptorByIndex(const DexFileHeader* hdr, uint32_t type_id);
+FieldId     dex_file_GetFieldDescriptorByIndex(const DexFileHeader* hdr, uint32_t field_id);
 
 /*
 // Map item type codes.

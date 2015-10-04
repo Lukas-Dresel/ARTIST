@@ -11,10 +11,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "logging.h"
-#include "exceptions.h"
-#include "util.h"
-
 typedef bool (*OUTPUT_CALLBACK)(const void *startingAddress, uint64_t currentOffset,
                                 int numCurrentBytes, void *additionalInfo);
 

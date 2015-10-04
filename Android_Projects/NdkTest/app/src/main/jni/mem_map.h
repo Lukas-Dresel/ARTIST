@@ -8,8 +8,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include "typedefs.h"
 
-typedef uint8_t byte;
 
 typedef struct MemMap
 {

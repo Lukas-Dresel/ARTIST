@@ -1,4 +1,6 @@
 #include "memory.h"
+#include "logging.h"
+#include "util.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,12 +87,6 @@ bool set_memory_protection(void *startingAddress, jlong numBytes, jboolean read,
                  " to full.", size, (uintptr_t) addr);
     return true;
 }
-
-#ifdef __cplusplus
-}
-#endif
-
-
 void *allocate_memory_chunk(size_t size)
 {
     CHECK(size > 0);
@@ -108,3 +104,10 @@ void free_memory_chunk(void *mem)
     CHECK_NE(mem, NULL);
     free(mem);
 }
+
+#ifdef __cplusplus
+}
+#endif
+
+
+

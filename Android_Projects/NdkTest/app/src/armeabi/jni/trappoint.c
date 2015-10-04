@@ -99,7 +99,7 @@ static void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
 
     if(trap->handler != NULL)
     {
-        LOGI("Executing registered handler at "PRINT_PTR" with arguments("PRINT_PTR", "PRINT_PTR", "PRINT_PTR")",
+        LOGI("Executing registered handler for "PRINT_PTR" with arguments("PRINT_PTR", "PRINT_PTR", "PRINT_PTR")",
              (uintptr_t)(trap->target.mem_addr), (uintptr_t)(context), (uintptr_t)(trap->handler_args));
 
         trap->handler(trap->target.mem_addr, context, trap->handler_args);

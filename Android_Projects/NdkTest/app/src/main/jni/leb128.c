@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 #include "macros.h"
-#include "util.h"
+#include "bit_utils.h"
 
 // Reads an unsigned LEB128 value, updating the given pointer to point
 // just past the end of the read value. This function tolerates

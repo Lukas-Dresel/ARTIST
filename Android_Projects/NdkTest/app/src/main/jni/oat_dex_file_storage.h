@@ -6,37 +6,16 @@
 #define NDKTEST_LAZY_OAT_DEX_FILE_STORAGE_H
 
 #include <sys/types.h>
+#include "oat.h"
+#include "typedefs.h"
 #include "oat_info.h"
 
-
-struct LazyOatDexFileStorage;
-typedef struct LazyOatDexFileStorage LazyOatDexFileStorage;
-
-typedef struct String
-{
-    uint32_t length;
-    char *content;
-} String;
-typedef struct OatDexFileInfo
-{
-    // References
-    LazyOatInfo *oat_info;
-    LazyOatDexFileStorage *oat_dex_file_storage;
-    uint32_t index;
-
-    //Content
-    void *memory_location;
-    String dex_file_location;
-    uint32_t checksum;
-    void *dex_file_pointer;
-    uint32_t number_of_defined_classes;
-    uint32_t *class_definition_offsets;
-} OatDexFileInfo;
-
+struct LazyOatInfo;
+struct OatDexFileInfo;
 struct LazyOatDexFileStorage
 {
-    // The Oat Info structure this is the dex_file_storage of.
-    LazyOatInfo *oat_info;
+    // The Oat Info structure this is the dex_file_storage_info of.
+    struct LazyOatInfo *oat_info;
 
     // The number of dex files. This is equivalent to OatHeader->dex_files_count_
     size_t dex_file_count;
@@ -65,7 +44,12 @@ struct LazyOatDexFileStorage
     // For every located OatDexFile this struct contains the relevant information.
     // This could have been made to be lazy, but because the variable length encoding
     // makes an almost complete parsing necessary anyway this is done immediately
-    OatDexFileInfo *dex_file_contents;
+    struct OatDexFileInfo *dex_file_contents;
 };
+
+struct LazyOatDexFileStorage*  oat_dex_file_storage_Initialize(struct LazyOatInfo *oat);
+struct OatDexFileInfo*  oat_dex_file_storage_GetOatDexFileInfo(struct LazyOatDexFileStorage *self, uint32_t index);
+void*                   oat_dex_file_storage_GetOatDexFileLocation(struct LazyOatDexFileStorage *self, uint32_t index);
+void                    oat_dex_file_storage_Destroy(struct LazyOatDexFileStorage *self);
 
 #endif //NDKTEST_LAZY_OAT_DEX_FILE_STORAGE_H

@@ -4,12 +4,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-#define COUNT_32BIT_LEADING_ZEROS(x) __builtin_clz(x)
-#define COUNT_64BIT_LEADING_ZEROS(x) __builtin_clzll(x)
-
-#define COUNT_32BIT_TAILING_ZEROS(x) __builtin_ctz(x)
-#define COUNT_64BIT_TAILING_ZEROS(x) __builtin_ctzll(x)
-
+typedef bool (*PREDICATE)(void* current, void* additionalArgs);
 
 uint64_t round_down(uint64_t value, uint64_t size);
 

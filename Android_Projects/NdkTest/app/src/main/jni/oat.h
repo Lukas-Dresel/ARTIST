@@ -7,8 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
-#define INVALID_OFF_T (-1)
+#include "typedefs.h"
 
 typedef enum OatClassType
 {
@@ -82,6 +81,48 @@ typedef struct OatHeader
     uint8_t key_value_store_[0];  // note variable width data at end
 } OatHeader;
 
+typedef struct OatDexFileInfo
+{
+    //Content
+    void*                   memory_location;
+    String                  dex_file_location;
+    uint32_t                checksum;
+    void*                   dex_file_pointer;
+    uint32_t                number_of_defined_classes;
+    uint32_t*               class_definition_offsets;
+} OatDexFileInfo;
+
+typedef struct OatMethodOffsets
+{
+    // This code offset points to the actual code.
+    // There is a struct OatQuickMethodHeader that lies directly before this point.
+    // This contains all the information about the code.
+    uint32_t code_offset_;
+} OatMethodOffsets;
+typedef struct OatClass
+{
+    int16_t             mirror_class_status;
+    uint16_t            oat_class_type;
+    uint32_t            bitmap_size;
+    const uint8_t*      bitmap_pointer;
+    OatMethodOffsets*   methods_pointer;
+} OatClass;
+typedef struct QuickMethodFrameInfo
+{
+    uint32_t frame_size_in_bytes_;
+    uint32_t core_spill_mask_;
+    uint32_t fp_spill_mask;
+} QuickMethodFrameInfo;
+
+typedef struct OatQuickMethodHeader
+{
+    uint32_t mapping_table_offset_;
+    uint32_t vmap_table_offset_;
+    uint32_t gc_map_offset_;
+    QuickMethodFrameInfo frame_info_;
+    uint32_t code_size_;
+} OatQuickMethodHeader;
+
 char *repr_OatClassType(uint16_t t);
 
 char *repr_InstructionSetFeatures(uint32_t f);
@@ -90,11 +131,13 @@ char *repr_InstructionSet(InstructionSet i);
 
 char *repr_mirror_Class_Status(int16_t s);
 
-const char *oat_header_GetStoreValueByKey(OatHeader *this, const char *key);
+const char *oat_GetStoreValueByKey(OatHeader *this, const char *key);
 
-bool oat_header_GetStoreKeyValuePairByIndex(OatHeader *this, size_t index, const char **key,
-                                            const char **value);
+bool oat_GetStoreKeyValuePairByIndex(OatHeader *this, size_t index, const char **key,
+                                     const char **value);
 
 size_t oat_header_GetHeaderSize(OatHeader *this);
+
+struct OatClass oat_GetOatClassByIndex(OatHeader* oat_header, uint32_t dex_file_index, uint32_t class_def_index);
 
 #endif //NDKTEST_OAT_H

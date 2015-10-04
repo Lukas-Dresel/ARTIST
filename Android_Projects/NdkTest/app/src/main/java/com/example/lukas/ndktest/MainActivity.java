@@ -1,24 +1,18 @@
 package com.example.lukas.ndktest;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import com.example.lukas.ndktest.MappedMemoryRegion;
 import com.example.lukas.ndktest.MemoryAnalysis.MemoryAnalyzer;
 import com.example.lukas.ndktest.MemoryAnalysis.MemoryInfo;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 
-import org.json.JSONObject;
-
-import java.lang.reflect.Method;
+import dalvik.system.DexClassLoader;
 
 
 public class MainActivity extends Activity
@@ -42,10 +36,25 @@ public class MainActivity extends Activity
 
         this.dumpProcessMemoryMap();
         //this.testBreakpointAtoi();
+
+        Log.d(TAG, "Overwriting java code.");
         this.testOverwritingJavaCode();
+        Log.d(TAG, "Overwrote java code.");
+        this.mOutput.setText(String.format("Bits of %d: %d", 10, Integer.bitCount(10)));
         this.logCoolNumber();
 
         try
+        {
+            DexClassLoader loader;
+            loader = new DexClassLoader("asdf", null, null, null);
+            loader.loadClass("abc");
+        }
+        catch(Exception ex)
+        {
+            Log.e(TAG, String.format("Exception making class loader: %s", ex.getMessage()));
+        }
+
+        /*try
         {
             MemoryInfo info = MemoryAnalyzer.getMemoryInfo();
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -54,8 +63,8 @@ public class MainActivity extends Activity
         }
         catch (Exception ex)
         {
-            Log.e(TAG, String.format("Exception getting memory regions: %s ", ex.getMessage()));
-        }
+            Log.e(TAG, String.format("Exception getting memory regions: %s", ex.getMessage()));
+        }*/
     }
 
     @Override
