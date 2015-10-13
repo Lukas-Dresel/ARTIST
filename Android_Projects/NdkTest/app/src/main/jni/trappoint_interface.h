@@ -27,6 +27,12 @@ void destroy_trappoints();
 TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK handler,
                                  void *additionalArg);
 
+//TODO add ability to enable/disable trappoints so that it is not necessary to delete the trappoint
+// in the handler before calling the handler, so that the handler has access to the actual instructions
+// that were overwritten to allow e.g single-stepping as the handler needs info on the length of the
+// instruction.
+
+
 void uninstall_trappoint(TrapPointInfo *trap);
 
 TrapPointInfo *find_first_trappoint_with_predicate(TRAPPOINT_PREDICATE p, void *args);

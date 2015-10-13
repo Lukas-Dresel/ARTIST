@@ -38,7 +38,7 @@ public class MainActivity extends Activity
         //this.testBreakpointAtoi();
 
         Log.d(TAG, "Overwriting java code.");
-        this.testSingleStep();
+        this.testOverwritingJavaCode();
         Log.d(TAG, "Overwrote java code.");
         this.mOutput.setText(String.format("Bits of %d: %d", 10, Integer.bitCount(10)));
         this.logCoolNumber();
