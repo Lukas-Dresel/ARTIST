@@ -5,6 +5,7 @@
 #include "oat_class.h"
 #include "logging.h"
 #include "bit_vector_util.h"
+#include "abi_interface.h"
 
 OatClass* oat_class_Parse(OatClass* result, const uint8_t* oat_class_pointer)
 {
@@ -77,6 +78,6 @@ void* oat_class_GetMethodCodePointer(const OatHeader* oat_header, const OatClass
 }
 OatQuickMethodHeader* oat_class_GetQuickMethodHeader(const OatHeader* oat_header, const OatClass* oat_class, uint32_t method_index)
 {
-    OatQuickMethodHeader* hdr = oat_class_GetMethodCodePointer(oat_header, oat_class, method_index);
+    OatQuickMethodHeader* hdr = entry_point_to_code_pointer(oat_class_GetMethodCodePointer(oat_header, oat_class, method_index));
     return (hdr == NULL) ? NULL : hdr - 1; // The OatQuickMethodHeader lies right before the code.
 }
