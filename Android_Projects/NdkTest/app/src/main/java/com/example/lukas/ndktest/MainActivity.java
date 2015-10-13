@@ -38,7 +38,7 @@ public class MainActivity extends Activity
         //this.testBreakpointAtoi();
 
         Log.d(TAG, "Overwriting java code.");
-        this.testOverwritingJavaCode();
+        this.testSingleStep();
         Log.d(TAG, "Overwrote java code.");
         this.mOutput.setText(String.format("Bits of %d: %d", 10, Integer.bitCount(10)));
         this.logCoolNumber();
@@ -93,6 +93,7 @@ public class MainActivity extends Activity
     }
 
     private native void testOverwritingJavaCode();
+    private native void testSingleStep();
     private native void testBreakpointAtoi();
 
     private native void dumpProcessMemoryMap();

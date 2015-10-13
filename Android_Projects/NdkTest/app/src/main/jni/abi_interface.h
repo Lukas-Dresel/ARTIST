@@ -13,10 +13,11 @@
 struct InstructionInfo;
 typedef struct InstructionInfo InstructionInfo;
 
+void* entry_point_to_code_pointer(void* address);
+uint32_t get_instruction_length(void* address);
+
 uint32_t get_argument(ucontext_t *c, unsigned int index);
-
 void set_argument(ucontext_t *c, unsigned int index, uint32_t val);
-
 InstructionInfo extract_next_executed_instruction(ucontext_t *ctx);
 
 

@@ -39,16 +39,6 @@ uint64_t get_page_offset(const void *address)
     return (uint64_t) (address - get_page_base(address));
 }
 
-void *get_code_base_address(const void *address)
-{
-    return align_address_to_size(address, 4);
-}
-
-uint64_t get_code_base_offset(const void *address)
-{
-    return (uint64_t) (address - align_address_to_size(address, 4));
-}
-
 const char *boolToString(bool b)
 {
     return b ? "true" : "false";

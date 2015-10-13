@@ -59,6 +59,9 @@ JNIEXPORT void JNICALL
         Java_com_example_lukas_ndktest_MainActivity_testOverwritingJavaCode(JNIEnv *env,
                                                                             jobject instance);
 
+JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testSingleStep(
+        JNIEnv *env, jobject instance);
+
 #endif
 
 

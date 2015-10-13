@@ -11,6 +11,8 @@
 #include "oat_info.h"
 #include "dex_class_data.h"
 #include "oat_class.h"
+#include "abi_interface.h"
+#include "../../armeabi/jni/abi.h"
 
 
 #ifdef __cplusplus
@@ -51,7 +53,7 @@ void handler_hello_world(void *trap_addr, ucontext_t *context, void *args)
 void run_trap_point_test(JNIEnv *env)
 {
     void *func = (*env)->NewStringUTF;
-    void *addr = (unsigned short *) get_code_base_address(func);
+    void *addr = (unsigned short *)((uint64_t)func & ~0x1);
 
     LOGI("Hexdump before: ");
     hexdump_aligned(env, addr, 16, 8, 8);
@@ -233,6 +235,139 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwriti
 
     LOGD("Trappoint installed, let's see if it worked.");
 }
+
+struct Step_Handler_Args
+{
+    void* func_start;
+    uint32_t func_size;
+};
+static struct Step_Handler_Args step_handler_args;
+void handler_step_function(void *trap_addr, ucontext_t *context, void *args)
+{
+    struct Step_Handler_Args* arg = (struct Step_Handler_Args*)args;
+
+    void* start = arg->func_start;
+    void* end = arg->func_start + arg->func_size;
+
+    InstructionInfo next_instr = extract_next_executed_instruction(context);
+    LOGD("SingleStep-Handler: Next instruction assumed to be: "PRINT_PTR, (uintptr_t)next_instr.call_addr);
+    if(next_instr.call_addr > start && next_instr.call_addr < end)
+    {
+        LOGD("Attempting to install next trappoint in single step chain. ");
+        install_trappoint(next_instr.call_addr, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, handler_step_function, arg);
+    }
+    else
+    {
+        LOGD("Stopping singlestepping, as adress is out of range.");
+    }
+}
+
+JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testSingleStep(
+        JNIEnv *env, jobject instance)
+{
+    //waitForDebugger();
+
+    /*
+    const char *lib2 = "/data/dalvik-cache/arm/data@app@com.example.lukas.ndktest-2@base.apk@classes.dex";
+    const char *lib3 = "/data/dalvik-cache/arm/data@app@com.example.lukas.ndktest-3@base.apk@classes.dex";
+
+    dump_process_memory_map();
+
+    void *lib_handle = dlopen(lib2, RTLD_NOW);
+    if (NULL == lib_handle)
+    {
+        LOGW("Failed finding first lib path, trying alternative.");
+        lib_handle = dlopen(lib3, RTLD_NOW);
+    }
+    if (NULL == lib_handle)
+    {
+        LOGF("Dlopen failed: %s", strerror(errno));
+        return;
+    }
+     */
+
+    // For Samsung S4
+    // void* lib_handle = dlopen("/system/framework/arm/boot.oat", RTLD_NOW);
+
+    //void* lib_handle = dlopen("/data/dalvik-cache/arm/system@framework@boot.oat", RTLD_NOW);
+    //void *elf_oat_begin = dlsym(lib_handle, "oatdata");
+    void* elf_oat_begin = (void*)(0x711ec000 + 0x1000);
+    if (NULL == elf_oat_begin)
+    {
+        LOGF("Dlsym(\"oatdata\") failed: %s", strerror(errno));
+        return;
+    }
+    void *elf_oat_end = (void*)0xFFFFFF00;
+    if (NULL == elf_oat_begin)
+    {
+        LOGF("Dlsym(\"oatlastword\") failed: %s", strerror(errno));
+        return;
+    }
+    elf_oat_end += sizeof(uint32_t);
+
+    LazyOatInfo* oat_info = oat_info_Initialize(elf_oat_begin, elf_oat_end);
+    uint32_t oat_dex_file_index;
+    if(!oat_info_FindOatDexFileIndicesByPredicate(oat_info, (PREDICATE)dexFileNamePredicate_StrStr, "libart", &oat_dex_file_index, 1))
+    {
+        LOGF("Could not find dex file libart in boot.oat in memory.");
+        return;
+    }
+    LOGD("Index of libart dex file: %d", oat_dex_file_index);
+    OatDexFileInfo* oat_dex_file = oat_info_GetOatDexFileByIndex(oat_info, oat_dex_file_index);
+    char oat_dex_file_location[oat_dex_file->dex_file_location.length + 1];
+    strncpy(oat_dex_file_location, oat_dex_file->dex_file_location.content, oat_dex_file->dex_file_location.length);
+    oat_dex_file_location[oat_dex_file->dex_file_location.length] = 0;
+    LOGD("Resolved oat_dex_file location: %s", oat_dex_file_location);
+
+    //log_oat_dex_file_storage_contents(oat_info_GetHeader(oat_info));
+
+    uint32_t current_class_def_index;
+    DexFileHeader* dex_hdr = oat_dex_file->dex_file_pointer;
+    if(!dex_file_FindClassDefinitionIndicesByPredicate(dex_hdr, dexFileClassPredicate_strcmp,
+                                                       "Ljava/lang/Integer;", &current_class_def_index,
+                                                       1))
+    {
+        LOGF("Could not resolve class index for class in libart dex file.");
+        return;
+    }
+
+    ClassDef dex_class_def = dex_file_GetClassDefinitionByIndex(dex_hdr, current_class_def_index);
+    OatClass oat_class_def;
+    oat_class_Extract(&oat_class_def, oat_info, oat_dex_file_index, current_class_def_index);
+
+    uint8_t* dex_class_data_pointer = (void*)dex_hdr + dex_class_def.class_data_off_;
+    DexClassData* class_data = dex_class_data_Initialize(dex_class_data_pointer);
+    if(class_data == NULL)
+    {
+        return;
+    }
+
+    uint32_t interesting_method_index = 3;
+
+    log_dex_file_method_id_contents(dex_hdr, dex_class_data_GetMethodIdIndex_DirectMethod(class_data, interesting_method_index));
+    log_oat_dex_file_method_offsets_content(oat_info->header, &oat_class_def, interesting_method_index);
+
+    void*                   method_code     = oat_class_GetMethodCodePointer(oat_info->header, &oat_class_def, interesting_method_index);
+    OatQuickMethodHeader*   method_header   = oat_class_GetQuickMethodHeader(oat_info->header, &oat_class_def, interesting_method_index);
+
+    void* trappoint_loc = method_code;
+
+    LOGD("OatQuickMethodHeader: "PRINT_PTR, (uintptr_t)method_header);
+    LOGD("Method Code Start:    "PRINT_PTR, (uintptr_t)method_code);
+    LOGD("Method Code Size:     %d", method_header->code_size_);
+    LOGD("Trappoint at:         "PRINT_PTR, (uintptr_t)trappoint_loc);
+
+    step_handler_args.func_start = method_code;
+    step_handler_args.func_size = method_header->code_size_;
+
+    LOGD("Attempting to single-step trace Integer.bitcount trappoint at "PRINT_PTR, (uintptr_t)trappoint_loc);
+    install_trappoint(trappoint_loc, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
+                      &handler_step_function, (void*)&step_handler_args);
+
+    LOGD("Trappoint installed, let's see if it worked.");
+}
+
+
 
 
 /*

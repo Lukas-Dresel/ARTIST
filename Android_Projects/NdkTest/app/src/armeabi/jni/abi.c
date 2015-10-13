@@ -9,6 +9,44 @@
 
 #include "../../main/jni/abi_interface.h"
 #include "cpsr_util.h"
+#include "../../main/jni/util.h"
+
+bool is_address_thumb_mode(void* address)
+{
+    void* aligned = align_address_to_size(address, 4);
+    uint32_t offset = (uint32_t)(address - aligned);
+    return (offset == 1 || offset == 3);
+}
+void* entry_point_to_code_pointer(void* address)
+{
+    return (void*)((uint64_t)address & ~0x1);
+}
+
+static const uint16_t thumb_32bit_mask = 0b1111100000000000;  //  this one can be a const int.
+
+// But these have to be constant expressions for the compiler to use them in a switch-case statement
+#define THUMB_32BIT_INSTRUCTION_PATTERN1 0b1110100000000000
+#define THUMB_32BIT_INSTRUCTION_PATTERN2 0b1111000000000000
+#define THUMB_32BIT_INSTRUCTION_PATTERN3 0b1111100000000000
+
+uint32_t get_instruction_length(void* address)
+{
+    if(!is_address_thumb_mode(address))
+    {
+        return 4;
+    }
+    uint16_t halfword = *(uint16_t*)entry_point_to_code_pointer(address);
+    uint16_t masked = halfword & thumb_32bit_mask;
+    switch(masked)
+    {
+        case THUMB_32BIT_INSTRUCTION_PATTERN1:
+        case THUMB_32BIT_INSTRUCTION_PATTERN2:
+        case THUMB_32BIT_INSTRUCTION_PATTERN3:
+            return 4;
+        default:
+            return 2;
+    }
+}
 
 uint32_t get_argument(ucontext_t* c, unsigned int index)
 {
@@ -55,20 +93,15 @@ void set_argument(ucontext_t* c, unsigned int index, uint32_t val)
 
 InstructionInfo extract_next_executed_instruction(ucontext_t* ctx)
 {
-    InstructionInfo info;
+    InstructionInfo result;
     mcontext_t* stateInfo = &ctx->uc_mcontext;
-    if((stateInfo->arm_cpsr & CPSR_FLAG_THUMB) != 0)
-    {
-        info.mem_addr = (void*)stateInfo->arm_pc + 2;
-        info.call_addr = info.mem_addr + 1;
-        info.thumb = true;
-        return info;
-    }
-    else
-    {
-        info.mem_addr = (void*)stateInfo->arm_pc + 4;
-        info.call_addr = info.mem_addr;
-        info.thumb = false;
-        return info;
-    }
+
+    result.thumb = (stateInfo->arm_cpsr & CPSR_FLAG_THUMB) != 0;
+
+    void* addr = (void*)stateInfo->arm_pc + ((result.thumb) ? 1 : 0);
+    void* next_addr = addr + get_instruction_length(addr);
+
+    result.call_addr = next_addr;
+    result.mem_addr = entry_point_to_code_pointer(next_addr);
+    return result;
 }

@@ -77,6 +77,6 @@ void* oat_class_GetMethodCodePointer(const OatHeader* oat_header, const OatClass
 }
 OatQuickMethodHeader* oat_class_GetQuickMethodHeader(const OatHeader* oat_header, const OatClass* oat_class, uint32_t method_index)
 {
-    OatQuickMethodHeader* hdr = get_code_base_address(oat_class_GetMethodCodePointer(oat_header, oat_class, method_index));
+    OatQuickMethodHeader* hdr = oat_class_GetMethodCodePointer(oat_header, oat_class, method_index);
     return (hdr == NULL) ? NULL : hdr - 1; // The OatQuickMethodHeader lies right before the code.
 }

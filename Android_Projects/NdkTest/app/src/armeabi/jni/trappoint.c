@@ -11,6 +11,7 @@
 #include "../../main/jni/error.h"
 
 #include "generate_trap_instruction.h"
+#include "../../main/jni/abi_interface.h"
 
 
 static struct list_head installed_trappoints;
@@ -81,9 +82,6 @@ static void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
 
     mcontext_t* state_info = &(context->uc_mcontext);
 
-    log_siginfo_content(sigInfo);
-    log_mcontext_content(state_info);
-
     void* target = (void*)state_info->arm_pc;
 
     LOGD("Looking for trappoints for address "PRINT_PTR".", (uintptr_t)target);
@@ -95,7 +93,8 @@ static void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
         sigaction(SIGILL, &old_sigill_action, NULL);
         return;
     }
-    LOGD("FOUND trappoint in list! Proceeding with resetting.");
+    LOGD("FOUND trappoint in list! Removing it.");
+    uninstall_trappoint(trap);
 
     if(trap->handler != NULL)
     {
@@ -106,10 +105,8 @@ static void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
     }
     else
     {
-        LOGI("No trappoint handler was registered, so it wasn't executed.");
+        LOGI("No trappoint handler for "PRINT_PTR"was registered, so it wasn't executed.", (uintptr_t)(trap->target.mem_addr));
     }
-
-    uninstall_trappoint(trap);
 
     LOGD("Returning from SIGILL-Handler.");
 }
@@ -173,9 +170,9 @@ TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK
         trap->handler = handler;
         trap->handler_args = additionalArgs;
 
+        trap->target.thumb = is_address_thumb_mode(addr);
+        trap->target.mem_addr = entry_point_to_code_pointer(addr);
         trap->target.call_addr = addr;
-        trap->target.mem_addr = get_code_base_address(addr);
-        trap->target.thumb = (get_code_base_offset(addr) == 1);
 
         trap->instr_size = trap->target.thumb ? 2 : 4;
         trap->trapping_method = method;
@@ -288,7 +285,7 @@ bool validate_TrapPointInfo_contents(TrapPointInfo * trap)
     }
     if(trap->target.thumb)
     {
-        if(get_code_base_offset(trap->target.call_addr) != 1)
+        if(((uint64_t)trap->target.call_addr & 0x1) == 0)
         {
             set_last_error("How can the thumb mode be set if the call address doesn't have the least significant bit set?");
             return false;
@@ -301,7 +298,7 @@ bool validate_TrapPointInfo_contents(TrapPointInfo * trap)
     }
     else
     {
-        if(get_code_base_offset(trap->target.call_addr) != 0)
+        if(((uint64_t)trap->target.call_addr & 0x1) == 0x1)
         {
             set_last_error("How can the thumb mode not be set if the call address has the least significant bit set?");
             return false;

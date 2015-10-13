@@ -16,10 +16,6 @@ void *get_page_base(const void *address);
 
 uint64_t get_page_offset(const void *address);
 
-void *get_code_base_address(const void *address);
-
-uint64_t get_code_base_offset(const void *address);
-
 const char *boolToString(bool b);
 
 #endif

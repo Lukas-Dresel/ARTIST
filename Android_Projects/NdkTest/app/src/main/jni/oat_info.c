@@ -12,6 +12,7 @@
 #include "oat.h"
 #include "dex_class_data.h"
 #include "dex.h"
+#include "abi_interface.h"
 
 LazyOatInfo *oat_info_Initialize(void *begin, void *end)
 {
@@ -337,7 +338,7 @@ void log_oat_dex_file_method_offsets_content(const OatHeader* oat_header, const 
 
     LOGD("Method %d has OatMethodOffsets entry has code offset 0x%08x", method_index, oat_method_offset.code_offset_);
 
-    const byte* code_pointer = get_code_base_address((void*) oat_header + oat_method_offset.code_offset_);
+    const byte* code_pointer = entry_point_to_code_pointer((void*) oat_header + oat_method_offset.code_offset_);
     OatQuickMethodHeader* code_header = ((OatQuickMethodHeader*)code_pointer) - 1;
     LOGD("OatQuickMethodHeader: ");
     LOGD("Code Size: %d", code_header->code_size_);
