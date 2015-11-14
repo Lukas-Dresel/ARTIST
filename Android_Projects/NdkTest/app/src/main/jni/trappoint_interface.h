@@ -17,11 +17,9 @@ struct TrapPointInfo;
 typedef struct TrapPointInfo TrapPointInfo;
 
 typedef void (*TRAPPOINT_CALLBACK)(void *addr, ucontext_t *ctx, void *additionalArg);
-
 typedef bool (*TRAPPOINT_PREDICATE)(TrapPointInfo *trap, void *args);
 
 void init_trappoints();
-
 void destroy_trappoints();
 
 TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK handler,
@@ -30,12 +28,14 @@ TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK
 //TODO add ability to enable/disable trappoints so that it is not necessary to delete the trappoint
 // in the handler before calling the handler, so that the handler has access to the actual instructions
 // that were overwritten to allow e.g single-stepping as the handler needs info on the length of the
-// instruction.
+// instruction. This is a first attempt.
+bool enable_trappoint(TrapPointInfo* trap);
+bool disable_trappoint(TrapPointInfo* trap);
 
 
 void uninstall_trappoint(TrapPointInfo *trap);
 
-TrapPointInfo *find_first_trappoint_with_predicate(TRAPPOINT_PREDICATE p, void *args);
+TrapPointInfo *find_trappoint_with_predicate(TRAPPOINT_PREDICATE p, void *args);
 
 void dump_installed_trappoints_info();
 

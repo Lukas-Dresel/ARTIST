@@ -38,15 +38,16 @@ public class MainActivity extends Activity
         //this.testBreakpointAtoi();
 
         Log.d(TAG, "Overwriting java code.");
-        this.testOverwritingJavaCode();
+        this.tryNukeDexContent();
         Log.d(TAG, "Overwrote java code.");
         this.mOutput.setText(String.format("Bits of %d: %d", 10, Integer.bitCount(10)));
         this.logCoolNumber();
 
         try
         {
+            Log.d(TAG, "After this comes all the dexclassloader bullshit!");
             DexClassLoader loader;
-            loader = new DexClassLoader("asdf", null, null, null);
+            loader = new DexClassLoader("", "", "", this.getClassLoader());
             loader.loadClass("abc");
         }
         catch(Exception ex)
@@ -95,6 +96,7 @@ public class MainActivity extends Activity
     private native void testOverwritingJavaCode();
     private native void testSingleStep();
     private native void testBreakpointAtoi();
+    private native void tryNukeDexContent();
 
     private native void dumpProcessMemoryMap();
 

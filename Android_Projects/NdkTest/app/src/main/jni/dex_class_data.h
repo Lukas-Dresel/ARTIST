@@ -60,9 +60,9 @@ uint32_t            dex_class_data_GetFieldIdIndex_InstanceField    ( DexClassDa
 uint32_t            dex_class_data_GetMethodIdIndex_DirectMethod    ( DexClassData *self, uint32_t index );
 uint32_t            dex_class_data_GetMethodIdIndex_VirtualMethod   ( DexClassData *self, uint32_t index );
 
-DexClassDataField   dex_class_data_GetEncodedField_StaticField      ( DexClassData *self, uint32_t index );
-DexClassDataField   dex_class_data_GetEncodedField_InstanceField    ( DexClassData *self, uint32_t index );
-DexClassDataMethod  dex_class_data_GetEncodedMethod_DirectMethod    ( DexClassData *self, uint32_t index );
-DexClassDataMethod  dex_class_data_GetEncodedMethod_VirtualMethod   ( DexClassData *self, uint32_t index );
+DexClassDataField*   dex_class_data_GetEncodedField_StaticField      ( DexClassData *self, uint32_t index );
+DexClassDataField*   dex_class_data_GetEncodedField_InstanceField    ( DexClassData *self, uint32_t index );
+DexClassDataMethod*  dex_class_data_GetEncodedMethod_DirectMethod    ( DexClassData *self, uint32_t index );
+DexClassDataMethod*  dex_class_data_GetEncodedMethod_VirtualMethod   ( DexClassData *self, uint32_t index );
 
 #endif //NDKTEST_DEX_CLASS_DATA_H

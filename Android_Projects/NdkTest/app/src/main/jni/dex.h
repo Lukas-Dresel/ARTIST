@@ -26,6 +26,7 @@ static const char kMultiDexSeparator = ':';
 // preprocessor.
 #define kMultiDexSeparatorString ":"
 
+#define MemoryBackedValue(type, name) struct name { type* address; type value; };
 
 typedef struct DexFileHeader
 {

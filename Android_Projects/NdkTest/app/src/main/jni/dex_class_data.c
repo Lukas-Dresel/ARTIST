@@ -169,27 +169,27 @@ uint32_t dex_class_data_GetMethodIdIndex_VirtualMethod(DexClassData *self, uint3
     return self->virtual_methods_indices[index];
 }
 
-DexClassDataField dex_class_data_GetEncodedField_StaticField(DexClassData *self, uint32_t index)
+DexClassDataField* dex_class_data_GetEncodedField_StaticField(DexClassData *self, uint32_t index)
 {
     CHECK(self != NULL);
     CHECK(index < self->hdr.static_fields_size_);
-    return self->static_fields[index];
+    return &self->static_fields[index];
 }
-DexClassDataField dex_class_data_GetEncodedField_InstanceField(DexClassData *self, uint32_t index)
+DexClassDataField* dex_class_data_GetEncodedField_InstanceField(DexClassData *self, uint32_t index)
 {
     CHECK(self != NULL);
     CHECK(index < self->hdr.instance_fields_size_);
-    return self->instance_fields[index];
+    return &self->instance_fields[index];
 }
-DexClassDataMethod dex_class_data_GetEncodedMethod_DirectMethod(DexClassData *self, uint32_t index)
+DexClassDataMethod* dex_class_data_GetEncodedMethod_DirectMethod(DexClassData *self, uint32_t index)
 {
     CHECK(self != NULL);
     CHECK(index < self->hdr.direct_methods_size_);
-    return self->direct_methods[index];
+    return &self->direct_methods[index];
 }
-DexClassDataMethod dex_class_data_GetEncodedMethod_VirtualMethod(DexClassData *self, uint32_t index)
+DexClassDataMethod* dex_class_data_GetEncodedMethod_VirtualMethod(DexClassData *self, uint32_t index)
 {
     CHECK(self != NULL);
     CHECK(index < self->hdr.virtual_methods_size_);
-    return self->virtual_methods[index];
+    return &self->virtual_methods[index];
 }

@@ -67,7 +67,7 @@ void destroy_trappoints()
     }
 }
 
-bool sigill_handler_trappoint_predicate(TrapPointInfo* trap, void* args)
+static bool sigill_handler_trappoint_predicate(TrapPointInfo* trap, void* args)
 {
     if(trap->trapping_method & TRAP_METHOD_SIG_ILL == 0)
     {
@@ -75,42 +75,7 @@ bool sigill_handler_trappoint_predicate(TrapPointInfo* trap, void* args)
     }
     return trap->target.mem_addr == args;
 }
-
-static void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
-{
-    LOGD("Inside the SIGILL handler..., signal %d, siginfo_t "PRINT_PTR", context "PRINT_PTR, signal, (uintptr_t)sigInfo, (uintptr_t)context);
-
-    mcontext_t* state_info = &(context->uc_mcontext);
-
-    void* target = (void*)state_info->arm_pc;
-
-    LOGD("Looking for trappoints for address "PRINT_PTR".", (uintptr_t)target);
-    TrapPointInfo* trap = find_first_trappoint_with_predicate(sigill_handler_trappoint_predicate, target);
-    if(trap == NULL)
-    {
-        LOGD("Could not locate trappoint, this SIGILL should not originate from us.");
-        LOGD("Uninstalling own signal handler to pass on the SIGTRAP.");
-        sigaction(SIGILL, &old_sigill_action, NULL);
-        return;
-    }
-    LOGD("FOUND trappoint in list! Removing it.");
-    uninstall_trappoint(trap);
-
-    if(trap->handler != NULL)
-    {
-        LOGI("Executing registered handler for "PRINT_PTR" with arguments("PRINT_PTR", "PRINT_PTR", "PRINT_PTR")",
-             (uintptr_t)(trap->target.mem_addr), (uintptr_t)(context), (uintptr_t)(trap->handler_args));
-
-        trap->handler(trap->target.mem_addr, context, trap->handler_args);
-    }
-    else
-    {
-        LOGI("No trappoint handler for "PRINT_PTR"was registered, so it wasn't executed.", (uintptr_t)(trap->target.mem_addr));
-    }
-
-    LOGD("Returning from SIGILL-Handler.");
-}
-bool sigtrap_handler_trappoint_predicate(TrapPointInfo* trap, void* args)
+static bool sigtrap_handler_trappoint_predicate(TrapPointInfo* trap, void* args)
 {
     if(trap->trapping_method & TRAP_METHOD_SIG_TRAP == 0)
     {
@@ -118,38 +83,79 @@ bool sigtrap_handler_trappoint_predicate(TrapPointInfo* trap, void* args)
     }
     return trap->target.mem_addr == args;
 }
-static void sigtrap_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
+
+/**
+ * @return whether a trappoint for this address was found or not
+ */
+static bool signal_handler_invoke_trappoint_handler(int signal, siginfo_t *sigInfo,
+                                                    ucontext_t *context, TRAPPOINT_PREDICATE p)
 {
     mcontext_t* state_info = &(context->uc_mcontext);
-
-    LOGD("Inside the SIGTRAP handler..., signal %d, siginfo_t "PRINT_PTR", context "PRINT_PTR, signal, (uintptr_t)sigInfo, (uintptr_t)context);
-
     void* target = (void*)state_info->arm_pc;
 
     LOGD("Looking for trappoints for address "PRINT_PTR".", (uintptr_t)target);
-    TrapPointInfo* trap = find_first_trappoint_with_predicate(sigtrap_handler_trappoint_predicate, target);
+
+    TrapPointInfo* trap = find_trappoint_with_predicate(p, target);
     if(trap == NULL)
     {
-        LOGD("Could not locate trappoint, this SIGTRAP should not originate from us.");
-        LOGD("Uninstalling own signal handler to pass on the SIGTRAP.");
-        sigaction(SIGTRAP, &old_sigtrap_action, NULL);
-        return;
+        return false;
     }
-    LOGD("FOUND trappoint in list! Proceeding with resetting.");
 
+    // Disable the trappoint so that there's no collision with potential trappoint installation the
+    // handler could do.
+    disable_trappoint(trap);
     if(trap->handler != NULL)
     {
-        LOGI("Executing registered handler at "PRINT_PTR" with arguments("PRINT_PTR", "PRINT_PTR", "PRINT_PTR")",
-             (uintptr_t)(trap->target.mem_addr), (uintptr_t)(context), (uintptr_t)(trap->handler_args));
+        LOGI("Executing registered handler for "PRINT_PTR" with arguments"
+             "("PRINT_PTR", "PRINT_PTR", "PRINT_PTR")",
+             (uintptr_t) (trap->target.mem_addr), (uintptr_t) (context),
+             (uintptr_t) (trap->handler_args));
 
         trap->handler(trap->target.mem_addr, context, trap->handler_args);
     }
     else
     {
-        LOGI("No trappoint handler was registered, so it wasn't executed.");
+        LOGI("No trappoint handler for "PRINT_PTR" was registered, so it wasn't executed.",
+             (uintptr_t)(trap->target.mem_addr));
     }
 
+    // Every trappoint has to be removed, as it is necessary to reset the instruction. This is
+    // because on return of the signal handler the offending instruction is re-executed.
     uninstall_trappoint(trap);
+    return true;
+}
+static void sigill_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
+{
+    LOGD("Inside the SIGILL handler..., signal %d, siginfo_t "PRINT_PTR", context "PRINT_PTR, signal, (uintptr_t)sigInfo, (uintptr_t)context);
+    if(!signal_handler_invoke_trappoint_handler(signal, sigInfo, context,
+                                               sigill_handler_trappoint_predicate))
+    {
+        // Could not find any trappoints for our desired address
+        LOGW("Could not locate any trappoints for this address, this SIGILL should not originate from us.");
+        LOGW("Uninstalling own signal handler to pass on the SIGILL.");
+        sigaction(SIGILL, &old_sigill_action, NULL);
+        return;
+    }
+    LOGD("Returning from SIGILL-Handler.");
+}
+static void sigtrap_handler(int signal, siginfo_t* sigInfo, ucontext_t* context)
+{
+    mcontext_t *state_info = &(context->uc_mcontext);
+
+    LOGD("Inside the SIGTRAP handler..., signal %d, siginfo_t "
+                 PRINT_PTR
+                 ", context "
+                 PRINT_PTR, signal, (uintptr_t) sigInfo, (uintptr_t) context);
+
+    if (!signal_handler_invoke_trappoint_handler(signal, sigInfo, context,
+                                                 sigtrap_handler_trappoint_predicate))
+    {
+        // Could not find any trappoints for our desired address
+        LOGD("Could not locate trappoint, this SIGTRAP should not originate from us.");
+        LOGD("Uninstalling own signal handler to pass on the SIGTRAP.");
+        sigaction(SIGTRAP, &old_sigtrap_action, NULL);
+        return;
+    }
 
     LOGD("Returning from SIGTRAP-Handler.");
 }
@@ -205,15 +211,42 @@ TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK
     }
     return NULL;
 }
-void uninstall_trappoint(TrapPointInfo *trap)
+
+bool enable_trappoint(TrapPointInfo* trap)
 {
     if(!validate_TrapPointInfo_contents(trap))
     {
-        return;
+        return false;
     }
     if(!set_memory_protection(trap->target.mem_addr, trap->instr_size, true, true, true))
     {
-        set_last_error("Cannot set memory protections to reset the trappoints target to it's original state. NOT RESETTING MEMORY TO ORIGINAL STATE.");
+        set_last_error("Cannot set memory protections to write the trappoint instruction. TRAPPOINT WAS NOT SET.");
+        return false;
+    }
+    else
+    {
+        if(trap->target.thumb)
+        {
+            *((uint16_t*)trap->target.mem_addr) = trap->thumbCode.trap_instruction;
+        }
+        else
+        {
+            *((uint32_t*)trap->target.mem_addr) = trap->armCode.trap_instruction;
+        }
+        __builtin___clear_cache(trap->target.mem_addr, trap->target.mem_addr + trap->instr_size);
+    }
+    return true;
+}
+bool disable_trappoint(TrapPointInfo* trap)
+{
+    if(!validate_TrapPointInfo_contents(trap))
+    {
+        return false;
+    }
+    if(!set_memory_protection(trap->target.mem_addr, trap->instr_size, true, true, true))
+    {
+        set_last_error("Cannot set memory protections to reset the trappoints target to its original state. NOT RESETTING MEMORY TO ORIGINAL STATE.");
+        return false;
     }
     else
     {
@@ -225,7 +258,16 @@ void uninstall_trappoint(TrapPointInfo *trap)
         {
             *((uint32_t*)trap->target.mem_addr) = trap->armCode.preserved;
         }
-        __builtin___clear_cache((void*)trap->target.mem_addr, (void*)trap->target.mem_addr + trap->instr_size);
+        __builtin___clear_cache(trap->target.mem_addr, trap->target.mem_addr + trap->instr_size);
+    }
+    return true;
+}
+void uninstall_trappoint(TrapPointInfo *trap)
+{
+    if(!disable_trappoint(trap))
+    {
+        // The disable function alread tells us what we need to know, as it calls validate
+        return;
     }
     list_del(&trap->installed);
     free_memory_chunk(trap);
@@ -318,7 +360,7 @@ bool validate_TrapPointInfo_contents(TrapPointInfo * trap)
 }
 
 
-TrapPointInfo *find_first_trappoint_with_predicate(TRAPPOINT_PREDICATE p, void* args)
+TrapPointInfo *find_trappoint_with_predicate(TRAPPOINT_PREDICATE p, void *args)
 {
     TrapPointInfo* current;
     list_for_each_entry(current, &installed_trappoints, installed)

@@ -68,7 +68,6 @@ void log_oat_dex_file_class_defs_contents(const OatHeader *oat_header, const Dex
 
 
 void log_dex_file_header_contents(const DexFileHeader *hdr);
-
 void log_dex_file_string_id_contents(const DexFileHeader* hdr, uint32_t string_id_index);
 void log_dex_file_type_id_contents(const DexFileHeader* hdr, uint32_t type_id_index);
 void log_dex_file_class_def_contents(const DexFileHeader* hdr, uint32_t class_def_index);

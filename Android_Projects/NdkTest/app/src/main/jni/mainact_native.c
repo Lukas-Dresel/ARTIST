@@ -175,7 +175,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwriti
         return;
     }
     void *elf_oat_end = (void*)0xFFFFFF00;
-    if (NULL == elf_oat_begin)
+    if (NULL == elf_oat_end)
     {
         LOGF("Dlsym(\"oatlastword\") failed: %s", strerror(errno));
         return;
@@ -298,7 +298,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testSingleSte
         return;
     }
     void *elf_oat_end = (void*)0xFFFFFF00;
-    if (NULL == elf_oat_begin)
+    if (NULL == elf_oat_end)
     {
         LOGF("Dlsym(\"oatlastword\") failed: %s", strerror(errno));
         return;
@@ -324,7 +324,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testSingleSte
     uint32_t current_class_def_index;
     DexFileHeader* dex_hdr = oat_dex_file->dex_file_pointer;
     if(!dex_file_FindClassDefinitionIndicesByPredicate(dex_hdr, dexFileClassPredicate_strcmp,
-                                                       "Ljava/lang/Integer;", &current_class_def_index,
+                                                       "Ljava/lang/ClassLoader;", &current_class_def_index,
                                                        1))
     {
         LOGF("Could not resolve class index for class in libart dex file.");
@@ -342,10 +342,21 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testSingleSte
         return;
     }
 
-    uint32_t interesting_method_index = 3;
+    uint32_t interesting_method_index = 3; // 3 for bitcount in Integer Class
 
+    log_dex_file_class_def_contents(dex_hdr, current_class_def_index);
     log_dex_file_method_id_contents(dex_hdr, dex_class_data_GetMethodIdIndex_DirectMethod(class_data, interesting_method_index));
-    log_oat_dex_file_method_offsets_content(oat_info->header, &oat_class_def, interesting_method_index);
+    for(int method = 0; method < dex_class_data_GetNumberOfDirectMethods(class_data); method++)
+    {
+        log_oat_dex_file_method_offsets_content(oat_info->header, &oat_class_def, method);
+    }
+
+
+    //DexClassDataMethod data_method = dex_class_data_GetEncodedMethod_DirectMethod(class_data, interesting_method_index);
+    //hexdump_primitive(data_method.code_off_ + (void*)dex_hdr, 128, 8);
+    //memset(data_method.code_off_ + (void*)dex_hdr, 0xFF, 128);
+
+    /*
 
     void*                   method_code     = oat_class_GetMethodCodePointer(oat_info->header, &oat_class_def, interesting_method_index);
     OatQuickMethodHeader*   method_header   = oat_class_GetQuickMethodHeader(oat_info->header, &oat_class_def, interesting_method_index);
@@ -364,9 +375,74 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testSingleSte
     install_trappoint(trappoint_loc, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
                       &handler_step_function, (void*)&step_handler_args);
 
-    LOGD("Trappoint installed, let's see if it worked.");
+    LOGD("Trappoint installed, let's see if it worked.");*/
 }
 
+JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_tryNukeDexContent(
+        JNIEnv *env, jobject instance)
+{
+    void* lib_base = (void*)0x711ec000;
+    void* elf_oat_begin = lib_base + 0x1000;
+
+    void *elf_oat_end = (void*)0xFFFFFF00;
+    elf_oat_end += sizeof(uint32_t);
+
+    LazyOatInfo* oat_info = oat_info_Initialize(elf_oat_begin, elf_oat_end);
+    uint32_t oat_dex_file_index;
+    if(!oat_info_FindOatDexFileIndicesByPredicate(oat_info, (PREDICATE)dexFileNamePredicate_StrStr, "libart", &oat_dex_file_index, 1))
+    {
+        LOGF("Could not find dex file libart in boot.oat in memory.");
+        return;
+    }
+    LOGD("Index of libart dex file: %d", oat_dex_file_index);
+    OatDexFileInfo* oat_dex_file = oat_info_GetOatDexFileByIndex(oat_info, oat_dex_file_index);
+    char oat_dex_file_location[oat_dex_file->dex_file_location.length + 1];
+    strncpy(oat_dex_file_location, oat_dex_file->dex_file_location.content, oat_dex_file->dex_file_location.length);
+    oat_dex_file_location[oat_dex_file->dex_file_location.length] = 0;
+    LOGD("Resolved oat_dex_file location: %s", oat_dex_file_location);
+
+    //log_oat_dex_file_storage_contents(oat_info_GetHeader(oat_info));
+
+    uint32_t current_class_def_index;
+    DexFileHeader* dex_hdr = oat_dex_file->dex_file_pointer;
+    if(!dex_file_FindClassDefinitionIndicesByPredicate(dex_hdr, dexFileClassPredicate_strcmp,
+                                                       "Ldalvik/system/DexClassLoader;", &current_class_def_index,
+                                                       1))
+    {
+        LOGF("Could not resolve class index for class in libart dex file.");
+        return;
+    }
+
+    OatDexFileInfo* oat_dex = oat_dex_file_storage_GetOatDexFileInfo(oat_info->dex_file_storage_info, oat_dex_file_index);
+
+    //set_memory_protection(oat_dex->dex_file_pointer, 0x4000, true, true, true);
+    //memset(oat_dex->dex_file_pointer, 0xFF, 0x4000);
+
+    void* oat_class_def_pointer = (void*)oat_info->header + oat_dex->class_definition_offsets[current_class_def_index];
+    log_oat_dex_file_class_def_contents(oat_class_def_pointer);
+
+    ClassDef dex_class_def = dex_file_GetClassDefinitionByIndex(dex_hdr, current_class_def_index);
+
+    uint8_t* dex_class_data_pointer = (void*)dex_hdr + dex_class_def.class_data_off_;
+    DexClassData* class_data = dex_class_data_Initialize(dex_class_data_pointer);
+    if(class_data == NULL)
+    {
+        return;
+    }
+
+
+    log_dex_file_class_def_contents(dex_hdr, current_class_def_index);
+
+    for(uint32_t current_direct_method = 0;
+        current_direct_method < (uint32_t)dex_class_data_GetNumberOfDirectMethods(class_data);
+        current_direct_method ++)
+    {
+        DexClassDataMethod* m = dex_class_data_GetEncodedMethod_DirectMethod(class_data, current_direct_method);
+        void* code_ptr = (void*)dex_hdr + m->code_off_;
+        set_memory_protection(code_ptr, 128, true, true, true);
+        memset(code_ptr, 0xEB, 128);
+    }
+}
 
 
 

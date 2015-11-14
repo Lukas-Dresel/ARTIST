@@ -586,9 +586,9 @@ void log_dex_file_class_data_contents(const DexFileHeader* hdr, uint32_t class_d
         //log_dex_file_method_id_contents(hdr, method_id_index);
     }
     LOGD("\nVirtual Methods: ");
-    for(uint32_t i = 0; i < numDirect; i++)
+    for(uint32_t i = 0; i < numVirtual; i++)
     {
-        uint32_t method_id_index = dex_class_data_GetMethodIdIndex_DirectMethod(class_data, i);
+        uint32_t method_id_index = dex_class_data_GetMethodIdIndex_VirtualMethod(class_data, i);
         LOGD("Virtual Method: [%d] %s", method_id_index, dex_file_GetMethodIdName(hdr, method_id_index).content);
         //log_dex_file_method_id_contents(hdr, method_id_index);
     }
