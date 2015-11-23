@@ -2,175 +2,102 @@
 // Created by Lukas on 8/20/2015.
 //
 
+#include <stdint.h>
+
 #include "dex.h"
+
 #include "logging.h"
-#include "leb128.h"
 
-String dex_file_GetStringDataByIndex(const DexFileHeader* hdr, uint32_t string_id)
+bool dex_FindClass(const struct DexHeader *hdr, struct DexClass *result, char *descriptor)
 {
-    CHECK(hdr != NULL);
-    CHECK(string_id < hdr->string_ids_size_);
+    CHECK_RETURNFALSE(hdr != NULL);
+    CHECK_RETURNFALSE(result != NULL);
+    CHECK_RETURNFALSE(descriptor != NULL);
 
-    StringId* strings = (void*)hdr + hdr->string_ids_off_;
-    String str;
-    const byte* string_data_item = (void*) hdr + strings[string_id].string_data_off_;
-    str.length = DecodeUnsignedLeb128(&string_data_item);
-    str.content = (const char*)string_data_item;
-    return str;
-}
-String      dex_file_GetClassDefName(const DexFileHeader* hdr, uint32_t class_def_index)
-{
-    CHECK(hdr != NULL);
-    CHECK(class_def_index < hdr->class_defs_size_);
-
-    ClassDef c = dex_file_GetClassDefinitionByIndex(hdr, class_def_index);
-    return dex_file_GetTypeIdName(hdr, c.class_idx_);
-}
-String      dex_file_GetMethodIdName(const DexFileHeader* hdr, uint32_t method_id_index)
-{
-    CHECK(hdr != NULL);
-    CHECK(method_id_index < hdr->method_ids_size_);
-
-    MethodId m = dex_file_GetMethodDescriptorByIndex(hdr, method_id_index);
-    return dex_file_GetStringDataByIndex(hdr, m.name_idx_);
-}
-String      dex_file_GetTypeIdName(const DexFileHeader* hdr, uint32_t type_id_index)
-{
-    CHECK(hdr != NULL);
-    if(type_id_index == kDexNoIndex)
+    const struct ClassDef *found_class = FindClassDefByDescriptor(hdr, descriptor);
+    if (found_class == NULL)
     {
-        char* message = "[INVALID TYPE INDEX]";
-        String s = {.content = message, .length = strlen(message)};
-        return s;
+        return false;
     }
-    CHECK(type_id_index < hdr->type_ids_size_);
-
-    TypeId t = dex_file_GetTypeDescriptorByIndex(hdr, type_id_index);
-    return dex_file_GetStringDataByIndex(hdr, t.descriptor_idx_);
-}
-String      dex_file_GetFieldIdName(const DexFileHeader* hdr, uint32_t field_id_index)
-{
-    CHECK(hdr != NULL);
-    CHECK(field_id_index < hdr->field_ids_size_);
-
-    FieldId f = dex_file_GetFieldDescriptorByIndex(hdr, field_id_index);
-    return dex_file_GetStringDataByIndex(hdr, f.name_idx_);
-}
-uint32_t dex_file_FindSuperClassDefinitionIndex(const DexFileHeader* hdr, uint32_t original_class_def_index)
-{
-    CHECK(hdr != NULL);
-    CHECK(original_class_def_index < hdr->class_defs_size_);
-
-    // Dex specification requires superclasses to be defined prior to their subclasses,
-    // so iterating up to our class should be sufficient.
-    ClassDef original = dex_file_GetClassDefinitionByIndex(hdr, original_class_def_index);
-    for(uint32_t i = 0; i < original_class_def_index; i++)
+    result->dex_header = hdr;
+    result->class_def = found_class;
+    memset(&result->decoded_class_data, 0, sizeof(result->decoded_class_data));
+    if (result->class_def->class_data_off_ != 0)
     {
-        ClassDef current = dex_file_GetClassDefinitionByIndex(hdr, i);
-        if(current.class_idx_ == original.superclass_idx_)
+        const uint8_t *class_data_pointer = (void *) hdr + found_class->class_data_off_;
+        DecodeEncodedClassDataItem(hdr, &result->decoded_class_data, &class_data_pointer);
+    }
+    return true;
+}
+static bool FindMethod(const struct DexClass* class, struct DexMethod* result, const char* descriptor, const char* signature, bool direct)
+{
+    CHECK_RETURNFALSE(class != NULL);
+    CHECK_RETURNFALSE(descriptor != NULL);
+    CHECK_RETURNFALSE(signature != NULL);
+    if(result == NULL)
+    {
+        // This could be a legitimate use-case to simply figure out if a method is found.
+        return false;
+    }
+
+    const struct StringID* wanted_name = FindStringIDByModifiedUTF8StringValue(class->dex_header, descriptor);
+    const struct ProtoID* wanted_prototype = FindProtoIDBySignatureString(class->dex_header, signature);
+    if(wanted_name == NULL)
+    {
+        return false;
+    }
+    if(wanted_prototype == NULL)
+    {
+        return false;
+    }
+
+
+    uint32_t num_methods = class->decoded_class_data.virtual_methods_size;
+    const uint8_t* p = class->decoded_class_data.virtual_methods_array;
+    if(direct)
+    {
+        num_methods = class->decoded_class_data.direct_methods_size;
+        p = class->decoded_class_data.direct_methods_array;
+    }
+
+    uint32_t method_idx = 0;
+    struct DecodedMethod current;
+    for(uint32_t i = 0; i < num_methods; i++)
+    {
+        DecodeEncodedMethod(class->dex_header, &current, &p, &method_idx);
+
+        const struct MethodID* method_id = GetMethodID(class->dex_header, current.method_idx);
+        const struct StringID* current_name = GetStringID(class->dex_header, method_id->name_idx_);
+        const struct ProtoID* current_proto = GetProtoID(class->dex_header, method_id->proto_idx_);
+
+        if(CompareStringIDsByDexOrdering(class->dex_header, wanted_name, current_name) != 0)
         {
-            return i;
+            continue;
         }
-    }
-    return kDexNoIndex;
-}
-uint32_t dex_file_FindClassDefinitionIndicesByPredicate(const DexFileHeader *hdr,
-                                                        CLASSDEF_PREDICATE p, void *args,
-                                                        uint32_t *result, uint32_t maxResults)
-{
-    CHECK(hdr != NULL);
-    CHECK(p != NULL);
-    CHECK(result != NULL);
-
-    if(maxResults == 0)
-    {
-        return 0;
-    }
-
-    uint32_t foundResults = 0;
-    for(uint32_t i = 0; i < hdr->class_defs_size_; i++)
-    {
-        ClassDef current = dex_file_GetClassDefinitionByIndex(hdr, i);
-        if(p(hdr, &current, args))
+        if(CompareProtoIDsByDexOrdering(class->dex_header, wanted_prototype, current_proto) != 0)
         {
-            *result = i;
-            result++;
-            foundResults++;
-            if(foundResults >= maxResults)
-            {
-                break;
-            }
+            continue;
         }
+
+        // Found the desired Method.
+        result->dex_header = class->dex_header;
+        result->containing_class = class;
+        result->method_id = method_id;
+
+        // Simply redecode by resetting the method_idx
+        method_idx -= current.method_idx_diff;
+        DecodeEncodedMethod(class->dex_header, &result->decoded_method_data, current.backing_memory_address, &method_idx);
+        return true;
     }
-    return foundResults;
+    return false;
 }
-ClassDef dex_file_GetClassDefinitionByIndex(const DexFileHeader* hdr, uint32_t class_def_index)
+bool dex_FindVirtualMethod(const struct DexClass* class, struct DexMethod* result, const char* descriptor, const char* signature)
 {
-    CHECK(hdr != NULL);
-    CHECK(class_def_index < hdr->class_defs_size_);
-
-    ClassDef* class_definitions = (void*)hdr + hdr->class_defs_off_;
-    return class_definitions[class_def_index];
+    return FindMethod(class, result, descriptor, signature, false);
 }
-ProtoId dex_file_GetMethodPrototypeByIndex(const DexFileHeader* hdr, uint32_t proto_id)
+bool dex_FindDirectMethod(const struct DexClass* class, struct DexMethod* result, const char* descriptor, const char* signature)
 {
-    CHECK(hdr != NULL);
-    CHECK(proto_id < hdr->proto_ids_size_);
-
-    ProtoId* prototype_array = (void*)hdr + hdr->proto_ids_off_;
-    return prototype_array[proto_id];
+    return FindMethod(class, result, descriptor, signature, true);
 }
-MethodId dex_file_GetMethodDescriptorByIndex(const DexFileHeader* hdr, uint32_t method_id)
-{
-    CHECK(hdr != NULL);
-    CHECK(method_id < hdr->method_ids_size_);
 
-    MethodId* methods = (void*)hdr + hdr->method_ids_off_;
-    return methods[method_id];
-}
-uint32_t dex_file_FindMethodDescriptorIndicesByPredicate(const DexFileHeader* hdr, METHODID_PREDICATE p, void* args,
-                                              uint32_t* result, uint32_t maxResults)
-{
-    CHECK(hdr != NULL);
-    CHECK(p != NULL);
-    CHECK(result != NULL);
-
-    if(maxResults == 0)
-    {
-        return 0;
-    }
-
-    uint32_t foundResults = 0;
-    for(uint32_t i = 0; i < hdr->method_ids_size_; i++)
-    {
-        MethodId current = dex_file_GetMethodDescriptorByIndex(hdr, i);
-        if(p(hdr, &current, args))
-        {
-            *result = i;
-            result++;
-            foundResults++;
-            if(foundResults >= maxResults)
-            {
-                break;
-            }
-        }
-    }
-    return foundResults;
-}
-TypeId dex_file_GetTypeDescriptorByIndex(const DexFileHeader* hdr, uint32_t type_id)
-{
-    CHECK(hdr != NULL);
-    CHECK(type_id < hdr->type_ids_size_);
-
-    TypeId* types = (void*)hdr + hdr->type_ids_off_;
-    return types[type_id];
-}
-FieldId dex_file_GetFieldDescriptorByIndex(const DexFileHeader* hdr, uint32_t field_id)
-{
-    CHECK(hdr != NULL);
-    CHECK(field_id < hdr->field_ids_size_);
-
-    FieldId* fields = (void*)hdr + hdr->field_ids_off_;
-    return fields[field_id];
-}
 

@@ -6,6 +6,7 @@
 #include "logging.h"
 #include "bit_vector_util.h"
 #include "abi_interface.h"
+#include "dex_internal.h"
 
 OatClass* oat_class_Parse(OatClass* result, const uint8_t* oat_class_pointer)
 {
@@ -49,7 +50,7 @@ static uint32_t GetEffectiveMethodIndex(uint16_t class_type, uint32_t* bitmap_da
 {
     CHECK(class_type < kOatClassMax);
     CHECK(bitmap_data != NULL);
-    CHECK(method_index != kDexNoIndex);
+    CHECK(IsValidIndex(method_index));
 
     if(class_type == kOatClassAllCompiled)
     {
@@ -58,7 +59,7 @@ static uint32_t GetEffectiveMethodIndex(uint16_t class_type, uint32_t* bitmap_da
     if(class_type == kOatClassNoneCompiled || !bit_vector_IsBitSet(bitmap_data, method_index))
     {
         // This method has no compiled code
-        return kDexNoIndex;
+        return GetInvalidIndex();
     }
     return bit_vector_NumSetBits(bitmap_data, method_index);
 }
@@ -68,7 +69,7 @@ void* oat_class_GetMethodCodePointer(const OatHeader* oat_header, const OatClass
     CHECK_NE(oat_class, NULL);
 
     uint32_t methods_pointer_index = GetEffectiveMethodIndex(oat_class->oat_class_type, oat_class->bitmap_pointer, method_index);
-    if(methods_pointer_index == kDexNoIndex)
+    if(IsValidIndex(methods_pointer_index))
     {
         // This method has no compiled code.
         return NULL;

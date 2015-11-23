@@ -97,19 +97,19 @@ bool dexFileNamePredicate_StrStr(OatDexFileInfo* current, void* args)
 {
     return strstr(current->dex_file_location.content, args) != NULL;
 }
-bool dexFileClassPredicate_strstr(const DexFileHeader *hdr, ClassDef *c, void *args)
+bool dexFileClassPredicate_strstr(const struct DexHeader *hdr, ClassDef *c, void *args)
 {
     TypeId t = dex_file_GetTypeDescriptorByIndex(hdr, c->class_idx_);
     const char* s = dex_file_GetStringDataByIndex(hdr, t.descriptor_idx_).content;
     return strstr(s, args) != NULL;
 }
-bool dexFileClassPredicate_strcmp(const DexFileHeader* hdr, ClassDef* c, void* args)
+bool dexFileClassPredicate_strcmp(const struct DexHeader* hdr, ClassDef* c, void* args)
 {
     TypeId t = dex_file_GetTypeDescriptorByIndex(hdr, c->class_idx_);
     const char* s = dex_file_GetStringDataByIndex(hdr, t.descriptor_idx_).content;
     return strcmp(s, args) == 0;
 }
-bool dexFileMethodDescriptorPredicate_RecursiveClassMethods(DexFileHeader* hdr, MethodId* m, void* args)
+bool dexFileMethodDescriptorPredicate_RecursiveClassMethods(struct DexHeader* hdr, MethodId* m, void* args)
 {
     uint32_t class_index = (uint32_t)args;
     ClassDef c = dex_file_GetClassDefinitionByIndex(hdr, class_index);
@@ -199,7 +199,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwriti
     //log_oat_dex_file_storage_contents(oat_info_GetHeader(oat_info));
 
     uint32_t current_class_def_index;
-    DexFileHeader* dex_hdr = oat_dex_file->dex_file_pointer;
+    struct DexHeader* dex_hdr = oat_dex_file->dex_file_pointer;
     if(!dex_file_FindClassDefinitionIndicesByPredicate(dex_hdr, dexFileClassPredicate_strcmp,
                                                        "Ljava/lang/Integer;", &current_class_def_index,
                                                        1))
@@ -322,7 +322,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testSingleSte
     //log_oat_dex_file_storage_contents(oat_info_GetHeader(oat_info));
 
     uint32_t current_class_def_index;
-    DexFileHeader* dex_hdr = oat_dex_file->dex_file_pointer;
+    struct DexHeader* dex_hdr = oat_dex_file->dex_file_pointer;
     if(!dex_file_FindClassDefinitionIndicesByPredicate(dex_hdr, dexFileClassPredicate_strcmp,
                                                        "Ljava/lang/ClassLoader;", &current_class_def_index,
                                                        1))
@@ -404,7 +404,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_tryNukeDexCon
     //log_oat_dex_file_storage_contents(oat_info_GetHeader(oat_info));
 
     uint32_t current_class_def_index;
-    DexFileHeader* dex_hdr = oat_dex_file->dex_file_pointer;
+    struct DexHeader* dex_hdr = oat_dex_file->dex_file_pointer;
     if(!dex_file_FindClassDefinitionIndicesByPredicate(dex_hdr, dexFileClassPredicate_strcmp,
                                                        "Ldalvik/system/DexClassLoader;", &current_class_def_index,
                                                        1))

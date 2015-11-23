@@ -53,6 +53,14 @@
   if (UNLIKELY(!(x))) \
     LOGF( "Check failed: %s", #x );
 
+#define CHECK_RETURN(x, value) \
+  if (UNLIKELY(!(x))) { \
+    LOGF( "Check failed: %s", #x ); \
+    return (value); \
+  }
+#define CHECK_RETURNNULL(x) CHECK_RETURN((x), (NULL))
+#define CHECK_RETURNFALSE(x) CHECK_RETURN((x), (false))
+
 #define CHECK_EQ(x, y) CHECK((x) == (y))
 #define CHECK_NE(x, y) CHECK((x) != (y))
 #define CHECK_LE(x, y) CHECK((x) <= (y))
