@@ -28,6 +28,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "dex_internal.h"
 #include "logging.h"
 #include "leb128.h"
@@ -218,6 +219,10 @@ inline const struct TypeID *GetTypeIDArray(const struct DexHeader *hdr)
 const struct TypeID *GetTypeID(const struct DexHeader *hdr, uint32_t type_id_index)
 {
     CHECK_RETURNNULL(hdr != NULL);
+    if(type_id_index == kDexNoIndex)
+    {
+        return NULL;
+    }
     CHECK_RETURNNULL(type_id_index < hdr->type_ids_size_);
     CHECK_RETURNNULL(hdr->type_ids_off_ != 0);
     struct TypeID *ids = (void *) hdr + hdr->type_ids_off_;
@@ -229,7 +234,10 @@ uint16_t GetIndexForTypeID(const struct DexHeader *hdr, const struct TypeID *typ
     CHECK_RETURNNOINDEX16(hdr != NULL);
     CHECK_RETURNNOINDEX16(type_id != NULL);
     const struct TypeID *ids = GetTypeIDArray(hdr);
-    CHECK_RETURNNOINDEX16(ids != NULL);
+    if(ids == NULL)
+    {
+        return kDexNoIndex16;
+    }
     CHECK_RETURNNOINDEX16(type_id >= ids);
     CHECK_RETURNNOINDEX16(type_id < &ids[hdr->type_ids_size_]);
     size_t result = type_id - ids;
@@ -241,7 +249,10 @@ uint16_t GetIndexForTypeID(const struct DexHeader *hdr, const struct TypeID *typ
 inline const struct StringID *GetStringIDArray(const struct DexHeader *hdr)
 {
     CHECK_RETURNNULL(hdr != NULL);
-    CHECK_RETURNNULL(hdr->string_ids_off_ != 0);
+    if(hdr->string_ids_off_ == 0)
+    {
+        return NULL;
+    }
     return (void *) hdr + hdr->string_ids_off_;
 }
 
@@ -259,7 +270,10 @@ uint32_t GetIndexForStringID(const struct DexHeader *hdr, const struct StringID 
     CHECK_RETURNNOINDEX(hdr != NULL);
     CHECK_RETURNNOINDEX(string_id != NULL);
     const struct StringID *ids = GetStringIDArray(hdr);
-    CHECK_RETURNNOINDEX(ids != NULL);
+    if(ids == NULL)
+    {
+        return kDexNoIndex;
+    }
     CHECK_RETURNNOINDEX(string_id >= ids);
     CHECK_RETURNNOINDEX(string_id < &ids[hdr->string_ids_size_]);
     return string_id - ids;
@@ -269,16 +283,22 @@ uint32_t GetIndexForStringID(const struct DexHeader *hdr, const struct StringID 
 inline const struct ProtoID *GetProtoIDArray(const struct DexHeader *hdr)
 {
     CHECK_RETURNNULL(hdr != NULL);
-    CHECK_RETURNNULL(hdr->proto_ids_off_ != 0);
+    if(hdr->proto_ids_off_ == 0)
+    {
+        return NULL;
+    }
     return (void *) hdr + hdr->proto_ids_off_;
 }
 
 const struct ProtoID *GetProtoID(const struct DexHeader *hdr, uint16_t proto_id_index)
 {
     CHECK_RETURNNULL(hdr != NULL);
-    CHECK_RETURNNULL(proto_id_index < hdr->string_ids_size_);
-    CHECK_RETURNNULL(hdr->proto_ids_off_ != 0);
-    struct ProtoID *ids = (void *) hdr + hdr->proto_ids_off_;
+    if(proto_id_index == kDexNoIndex16)
+    {
+        return NULL;
+    }
+    CHECK(proto_id_index < hdr->proto_ids_size_);
+    const struct ProtoID *ids = GetProtoIDArray(hdr);
     return &ids[proto_id_index];
 }
 
@@ -287,7 +307,10 @@ uint16_t GetIndexForProtoID(const struct DexHeader *hdr, const struct ProtoID *p
     CHECK_RETURNNOINDEX16(hdr != NULL);
     CHECK_RETURNNOINDEX16(proto_id != NULL);
     const struct ProtoID *ids = GetProtoIDArray(hdr);
-    CHECK_RETURNNOINDEX16(ids != NULL);
+    if(ids == NULL)
+    {
+        return kDexNoIndex16;
+    }
     CHECK_RETURNNOINDEX16(proto_id >= ids);
     CHECK_RETURNNOINDEX16(proto_id < &ids[hdr->proto_ids_size_]);
     size_t result = proto_id - ids;
@@ -298,16 +321,22 @@ uint16_t GetIndexForProtoID(const struct DexHeader *hdr, const struct ProtoID *p
 inline const struct MethodID *GetMethodIDArray(const struct DexHeader *hdr)
 {
     CHECK_RETURNNULL(hdr != NULL);
-    CHECK_RETURNNULL(hdr->method_ids_off_ != 0);
+    if(hdr->method_ids_off_ == 0)
+    {
+        return NULL;
+    }
     return (void *) hdr + hdr->method_ids_off_;
 }
 
 const struct MethodID *GetMethodID(const struct DexHeader *hdr, uint32_t method_id_index)
 {
     CHECK_RETURNNULL(hdr != NULL);
+    if(method_id_index == kDexNoIndex)
+    {
+        return NULL;
+    }
     CHECK_RETURNNULL(method_id_index < hdr->method_ids_size_);
-    CHECK_RETURNNULL(hdr->method_ids_off_ != 0)
-    struct MethodID *ids = (void *) hdr + hdr->method_ids_off_;
+    const struct MethodID *ids = GetMethodIDArray(hdr);
     return &ids[method_id_index];
 }
 
@@ -316,7 +345,10 @@ uint32_t GetIndexForMethodID(const struct DexHeader *hdr, const struct MethodID 
     CHECK_RETURNNOINDEX(hdr != NULL);
     CHECK_RETURNNOINDEX(method_id != NULL);
     const struct MethodID *ids = GetMethodIDArray(hdr);
-    CHECK_RETURNNOINDEX(ids != NULL);
+    if(ids == NULL)
+    {
+        return kDexNoIndex;
+    }
     CHECK_RETURNNOINDEX(method_id >= ids);
     CHECK_RETURNNOINDEX(method_id < &ids[hdr->method_ids_size_]);
     return method_id - ids;
@@ -326,16 +358,22 @@ uint32_t GetIndexForMethodID(const struct DexHeader *hdr, const struct MethodID 
 inline const struct FieldID *GetFieldIDArray(const struct DexHeader *hdr)
 {
     CHECK_RETURNNULL(hdr != NULL);
-    CHECK_RETURNNULL(hdr->field_ids_off_ != 0);
+    if(hdr->field_ids_off_ == 0)
+    {
+        return NULL;
+    }
     return (void *) hdr + hdr->field_ids_off_;
 }
 
 const struct FieldID *GetFieldID(const struct DexHeader *hdr, uint32_t field_id_index)
 {
     CHECK_RETURNNULL(hdr != NULL);
+    if(field_id_index == kDexNoIndex)
+    {
+        return NULL;
+    }
     CHECK_RETURNNULL(field_id_index < hdr->field_ids_size_);
-    CHECK_RETURNNULL(hdr->field_ids_off_ != 0);
-    struct FieldID *ids = (void *) hdr + hdr->field_ids_off_;
+    const struct FieldID *ids = GetFieldIDArray(hdr);
     return &ids[field_id_index];
 }
 
@@ -344,7 +382,10 @@ uint32_t GetIndexForFieldID(const struct DexHeader *hdr, const struct FieldID *f
     CHECK_RETURNNOINDEX(hdr != NULL);
     CHECK_RETURNNOINDEX(field_id != NULL);
     const struct FieldID *ids = GetFieldIDArray(hdr);
-    CHECK_RETURNNOINDEX(ids != NULL);
+    if(ids == NULL)
+    {
+        return kDexNoIndex;
+    }
     CHECK_RETURNNOINDEX(field_id >= ids);
     CHECK_RETURNNOINDEX(field_id < &ids[hdr->field_ids_size_]);
     return field_id - ids;
@@ -361,12 +402,38 @@ inline const struct ClassDef *GetClassDefArray(const struct DexHeader *hdr)
 const struct ClassDef *GetClassDef(const struct DexHeader *hdr, uint16_t class_def_index)
 {
     CHECK_RETURNNULL(hdr != NULL);
-    CHECK_RETURNNULL(class_def_index < hdr->class_defs_size_);
+    CHECK_RETURNNULL(class_def_index < hdr->class_defs_size_ );
     CHECK_RETURNNULL(hdr->class_defs_off_ != 0);
     struct ClassDef *defs = (void *) hdr + hdr->class_defs_off_;
     return &defs[class_def_index];
 }
+const char* GetClassDefName(const struct DexHeader* hdr, const struct ClassDef* c)
+{
+    if(hdr == NULL || c == NULL)
+    {
+        return NULL;
+    }
 
+    const struct TypeID* type_id = GetTypeID(hdr, c->class_idx_);
+    if(NULL == type_id)
+    {
+        return NULL;
+    }
+    return StringDataByIdx(hdr, type_id->descriptor_idx_);
+}
+
+const char* GetClassDefNameByIndex(const struct DexHeader* hdr, const struct ClassDef* c)
+{
+    CHECK_RETURNNULL(hdr != NULL);
+    CHECK_RETURNNULL(c != NULL);
+
+    const struct TypeID* type_id = GetTypeID(hdr, c->class_idx_);
+    if(NULL == type_id)
+    {
+        return NULL;
+    }
+    return StringDataByIdx(hdr, type_id->descriptor_idx_);
+}
 uint16_t GetIndexForClassDef(const struct DexHeader *hdr, const struct ClassDef *class_def)
 {
     CHECK_RETURNNOINDEX16(hdr != NULL);
@@ -744,14 +811,12 @@ const struct MethodID *FindMethodID(const struct DexHeader *hdr,
     return NULL;
 }
 
-bool CreateTypeListFromStringSignature(
-        const struct DexHeader *hdr,
-        const struct String *signature,
-        uint16_t *return_type_idx,
-        uint16_t *param_type_idxs,
-        uint32_t max_num_writable_parameters,
-        uint32_t *num_written_parameters
-)
+bool CreateTypeListFromStringSignature( const struct DexHeader *hdr,
+                                        const struct String *signature,
+                                        uint16_t *return_type_idx,
+                                        uint16_t *param_type_idxs,
+                                        uint32_t max_num_writable_parameters,
+                                        uint32_t *num_written_parameters )
 {
     if (signature->content[0] != '(')
     {

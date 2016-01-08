@@ -7,9 +7,9 @@
 
 #include <ucontext.h>
 
-uint32_t get_argument(ucontext_t *c, unsigned int index);
+uint32_t GetArgument(ucontext_t *c, unsigned int index);
 
-void set_argument(ucontext_t *c, unsigned int index, uint32_t val);
+void SetArgument(ucontext_t *c, unsigned int index, uint32_t val);
 
 void log_siginfo_content(siginfo_t *info);
 

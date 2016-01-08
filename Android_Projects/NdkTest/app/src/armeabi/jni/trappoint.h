@@ -29,7 +29,7 @@ struct TrapPointInfo
     TRAPPOINT_CALLBACK handler;
     void*                   handler_args;
 
-    InstructionInfo         target;
+    struct InstructionInfo  target;
 
     uint32_t                instr_size;
 

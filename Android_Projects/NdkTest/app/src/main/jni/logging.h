@@ -49,6 +49,18 @@
 #define LOGF(...)
 #endif
 
+#define DCHECK(x) \
+  if (UNLIKELY(!(x))) \
+    LOGD( "Check failed: %s", #x );
+
+#define DCHECK_RETURN(x, value) \
+  if (UNLIKELY(!(x))) { \
+    LOGD( "Check failed: %s", #x ); \
+    return (value); \
+  }
+#define DCHECK_RETURNNULL(x) DCHECK_RETURN((x), (NULL))
+#define DCHECK_RETURNFALSE(x) DCHECK_RETURN((x), (false))
+
 #define CHECK(x) \
   if (UNLIKELY(!(x))) \
     LOGF( "Check failed: %s", #x );

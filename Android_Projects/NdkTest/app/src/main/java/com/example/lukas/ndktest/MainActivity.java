@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 
+import dalvik.system.BaseDexClassLoader;
 import dalvik.system.DexClassLoader;
 
 
@@ -35,9 +36,17 @@ public class MainActivity extends Activity
         this.mOutput = (TextView) this.findViewById(R.id.output);
 
         this.dumpProcessMemoryMap();
+
+        Class c = BaseDexClassLoader.class;
+
+        Log.i(TAG, String.format("DexClassLoader: Canonical Name: %s", c.getCanonicalName()));
+        Log.i(TAG, String.format("DexClassLoader: Name:           %s", c.getName()));
+        Log.i(TAG, String.format("DexClassLoader: Package Name:   %s", c.getPackage().getName()));
+
+
         //this.testBreakpointAtoi();
 
-        Log.d(TAG, "Overwriting java code.");
+        /*Log.d(TAG, "Overwriting java code.");
         this.tryNukeDexContent();
         Log.d(TAG, "Overwrote java code.");
         this.mOutput.setText(String.format("Bits of %d: %d", 10, Integer.bitCount(10)));
@@ -53,7 +62,7 @@ public class MainActivity extends Activity
         catch(Exception ex)
         {
             Log.e(TAG, String.format("Exception making class loader: %s", ex.getMessage()));
-        }
+        }*/
 
         /*try
         {

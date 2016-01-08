@@ -25,6 +25,8 @@
  * It was written to port the parsing of oat files to c code.
  */
 
+// THIS FILE IS ONLY FOR USE IN THE oat.c AND oat.h FILES!!!
+
 #ifndef NDKTEST_OAT_INTERNAL_H
 #define NDKTEST_OAT_INTERNAL_H
 
@@ -32,15 +34,15 @@
 #include <stdbool.h>
 #include "typedefs.h"
 
-typedef enum OatClassType
+enum ClassType
 {
-    kOatClassAllCompiled = 0,   // OatClass is followed by an OatMethodOffsets for each method.
-    kOatClassSomeCompiled = 1,  // A bitmap of which OatMethodOffsets are present follows the OatClass.
-    kOatClassNoneCompiled = 2,  // All methods are interpretted so no OatMethodOffsets are necessary.
+    kOatClassAllCompiled = 0,   // Class is followed by an OatMethodOffsets for each method.
+    kOatClassSomeCompiled = 1,  // A bitmap of which OatMethodOffsets are present follows the Class.
+    kOatClassNoneCompiled = 2,  // All methods are interpreted so no OatMethodOffsets are necessary.
     kOatClassMax = 3
-} OatClassType;
+};
 
-enum mirror_Class_Status
+enum ClassStatus
 {
     kStatusRetired = -2,
     kStatusError = -1,
@@ -58,7 +60,7 @@ enum mirror_Class_Status
     kStatusMax = 11,
 };
 
-typedef enum InstructionSet
+enum InstructionSet
 {
     kNone,
     kArm,
@@ -68,21 +70,21 @@ typedef enum InstructionSet
     kX86_64,
     kMips,
     kMips64
-} InstructionSet;
+};
 
-typedef enum InstructionSetFeatures
+enum InstructionSetFeatures
 {
     kHwDiv = 0x1,              // Supports hardware divide.
     kHwLpae = 0x2,              // Supports Large Physical Address Extension.
-} InstructionSetFeatures;
+};
 
 struct OatHeader
 {
     uint8_t magic_[4];
     uint8_t version_[4];
     uint32_t adler32_checksum_;
-    InstructionSet instruction_set_;
-    InstructionSetFeatures instruction_set_features_;
+    enum InstructionSet instruction_set_;
+    enum InstructionSetFeatures instruction_set_features_;
     uint32_t dex_file_count_;
     uint32_t executable_offset_;
     uint32_t interpreter_to_interpreter_bridge_offset_;
@@ -103,14 +105,6 @@ struct OatHeader
     uint8_t key_value_store_[0];  // note variable width data at end
 };
 
-struct OatClass
-{
-    int16_t                     mirror_class_status;
-    uint16_t                    oat_class_type;
-    uint32_t                    bitmap_size;
-    const uint8_t*              bitmap_pointer;
-    struct OatMethodOffsets*    methods_pointer;
-};
 struct OatMethodOffsets
 {
     // This code offset points to the actual code.
@@ -119,78 +113,116 @@ struct OatMethodOffsets
     uint32_t code_offset_;
 };
 
-struct QuickMethodFrameInfo
+struct OatQuickMethodFrameInfo
 {
     uint32_t frame_size_in_bytes_;
     uint32_t core_spill_mask_;
     uint32_t fp_spill_mask;
 };
 
-typedef struct OatQuickMethodHeader
+struct OatQuickMethodHeader
 {
-    uint32_t                    mapping_table_offset_;
-    uint32_t                    vmap_table_offset_;
-    uint32_t                    gc_map_offset_;
-    struct QuickMethodFrameInfo frame_info_;
-    uint32_t                    code_size_;
+    uint32_t                        mapping_table_offset_;
+    uint32_t                        vmap_table_offset_;
+    uint32_t                        gc_map_offset_;
+    struct OatQuickMethodFrameInfo  frame_info_;
+    uint32_t                        code_size_;
 };
 
-struct DecodedOatDexFile
+struct OatDexFileData
 {
-    //Content
-    void*                   backing_memory_address;
-    uint32_t                backing_memory_size;
+    const void*                 backing_memory_address;
 
-    String                  location_string;
-    uint32_t                checksum;
-    uint32_t                dex_file_offset;
-    uint32_t                number_of_defined_classes;
-    uint32_t*               class_definition_offsets;
+    // Contextual data
+    uint32_t                    num_defined_classes;
+    const struct DexHeader*     dex_file_pointer;
+
+    // Encoded data
+    String                      location_string;
+    uint32_t                    checksum;
+    uint32_t                    dex_file_offset;
+    const uint32_t*             class_definition_offsets;
+};
+struct OatClassData
+{
+    const void*                 backing_memory_address;
+
+    int16_t                     mirror_class_status;
+    uint16_t                    oat_class_type;
+    uint32_t                    bitmap_size;
+    const uint8_t*              bitmap_pointer;
+    struct OatMethodOffsets *   methods_pointer;
 };
 
 
-char *          GetOatClassTypeRepresentation(uint16_t t);
-char *          GetOatClassStatusRepresentation(int16_t status);
-char *          GetInstructionSetRepresentation(InstructionSet set);
-char *          GetInstructionSetFeaturesRepresentation(uint32_t f);
+char *              GetOatClassTypeRepresentation(uint16_t t);
+char *              GetOatClassStatusRepresentation(int16_t status);
+char *              GetInstructionSetRepresentation(enum InstructionSet set);
+char *              GetInstructionSetFeaturesRepresentation(uint32_t f);
 
-const char*     GetMagic(const struct OatHeader* hdr);
-uint32_t        GetChecksum(const struct OatHeader* hdr);
+const char*         GetMagic(const struct OatHeader* hdr);
+uint32_t            GetChecksum(const struct OatHeader* hdr);
 
-size_t          GetHeaderSize(const struct OatHeader* hdr);
+size_t              GetHeaderSize(const struct OatHeader* hdr);
 
-uint32_t        NumDexFiles(const struct OatHeader* hdr);
+uint32_t            NumDexFiles(const struct OatHeader* hdr);
 
-uint32_t        GetHeaderSize(const struct OatHeader* hdr);
+uint32_t            GetHeaderSize(const struct OatHeader* hdr);
 
-InstructionSet  GetInstructionSet(const struct OatHeader* hdr);
-uint32_t        GetInstructionSetFeaturesBitmap(const struct OatHeader* hdr);
+enum InstructionSet GetInstructionSet(const struct OatHeader* hdr);
+uint32_t            GetInstructionSetFeaturesBitmap(const struct OatHeader* hdr);
 
-uint32_t        GetExecutableOffset(const struct OatHeader* hdr);
+uint32_t            GetExecutableOffset(const struct OatHeader* hdr);
 
-uint32_t        GetJniDlsymLookupOffset(const struct OatHeader* hdr);
-const void*     GetJniDlSymLookup(const struct OatHeader* hdr);
+uint32_t            GetJniDlsymLookupOffset(const struct OatHeader* hdr);
+const void*         GetJniDlSymLookup(const struct OatHeader* hdr);
 
-uint32_t        GetQuickGenericJniTrampolineOffset(const struct OatHeader* hdr);
-const void*     GetQuickGenericJniTrampoline(const struct OatHeader* hdr);
+uint32_t            GetQuickGenericJniTrampolineOffset(const struct OatHeader* hdr);
+const void*         GetQuickGenericJniTrampoline(const struct OatHeader* hdr);
 
-uint32_t        GetQuickToInterpreterBridgeOffset(const struct OatHeader* hdr);
-const void*     GetQuickToInterpreterBridge(const struct OatHeader* hdr);
+uint32_t            GetQuickToInterpreterBridgeOffset(const struct OatHeader* hdr);
+const void*         GetQuickToInterpreterBridge(const struct OatHeader* hdr);
 
-int32_t         GetImagePatchDelta(const struct OatHeader* hdr);
-uint32_t        GetImageFileLocationOatChecksum(const struct OatHeader* hdr);
-uint32_t        GetImageFileLocationOatDataBegin(const struct OatHeader* hdr);
+int32_t             GetImagePatchDelta(const struct OatHeader* hdr);
+uint32_t            GetImageFileLocationOatChecksum(const struct OatHeader* hdr);
+uint32_t            GetImageFileLocationOatDataBegin(const struct OatHeader* hdr);
 
-uint32_t        GetKeyValueStoreSize(const struct OatHeader* hdr);
-const uint8_t*  GetKeyValueStore(const struct OatHeader* hdr);
+uint32_t            GetKeyValueStoreSize(const struct OatHeader* hdr);
+const uint8_t*      GetKeyValueStore(const struct OatHeader* hdr);
 
-const char *    GetStoreValueByKey(const struct OatHeader *this, const char *key);
+const void*         GetDexFileStoragePointer(const struct OatHeader* hdr);
 
-bool            GetStoreKeyValuePairByIndex(const struct OatHeader *this, size_t index,
-                                            const char **key, const char **value);
+const char*         GetStoreValueByKey(const struct OatHeader *this, const char *key);
 
-bool            IsKeyEnabled(const struct OatHeader* hdr, const char* key);
-bool            IsPic(const struct OatHeader* hdr);
-bool            IsDebuggable(const struct OatHeader* hdr);
+bool                GetStoreKeyValuePairByIndex(const struct OatHeader *this, size_t index,
+                                                const char **key, const char **value);
+
+bool                IsKeyEnabled(const struct OatHeader* hdr, const char* key);
+bool                IsPic(const struct OatHeader* hdr);
+bool                IsDebuggable(const struct OatHeader* hdr);
+
+
+
+bool                ReadOatValue_UInt32(const void **data, void* end,  uint32_t *result);
+bool                ReadOatValue_String(const void **data, void* end, struct String *result);
+bool                ReadOatValue_Array(const void **data, void* end, const void **result,
+                                       uint32_t num_elements, size_t element_size);
+
+bool                ReadOatDexFileData(const void** data, void* end, struct OatDexFileData* result,
+                                       const struct OatHeader* oat_hdr);
+bool                DecodeOatClassData(void* oat_class_pointer, void* end,
+                                       struct OatClassData * result);
+
+const struct OatMethodOffsets* GetOatMethodOffsets(const struct OatClassData* clazz,
+                                                   uint32_t method_index);
+
+
+const void*         GetQuickCode(void* base, const struct OatMethodOffsets* off);
+const struct OatQuickMethodHeader* GetOatQuickMethodHeader(void* base, const struct OatMethodOffsets* off);
+uint32_t            GetOatQuickMethodHeaderOffset(void* base, const struct OatMethodOffsets* off);
+
+uint32_t            GetQuickCodeSize(void* base, const struct OatMethodOffsets* off);
+uint32_t            GetQuickCodeSizeOffset(void* base, const struct OatMethodOffsets* off);
+
 
 #endif //NDKTEST_OAT_INTERNAL_H

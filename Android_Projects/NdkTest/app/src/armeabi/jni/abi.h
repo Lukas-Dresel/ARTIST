@@ -10,14 +10,11 @@
 
 struct InstructionInfo
 {
-    void*   call_addr;
-    void*   mem_addr;
-    bool    thumb;
+    const void* call_addr;
+    const void* mem_addr;
+    bool        thumb;
 };
-typedef struct InstructionInfo InstructionInfo;
 
-bool is_address_thumb_mode(void* address);
-
-uint32_t get_instruction_length(void* address);
+bool IsAddressThumbMode(void *address);
 
 #endif //NDKTEST_ABI_H

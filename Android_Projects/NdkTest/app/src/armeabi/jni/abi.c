@@ -11,15 +11,15 @@
 #include "cpsr_util.h"
 #include "../../main/jni/util.h"
 
-bool is_address_thumb_mode(void* address)
+bool        IsAddressThumbMode(void *address)
 {
     void* aligned = align_address_to_size(address, 4);
     uint32_t offset = (uint32_t)(address - aligned);
     return (offset == 1 || offset == 3);
 }
-void* entry_point_to_code_pointer(void* address)
+const void* EntryPointToCodePointer(const void *address)
 {
-    return (void*)((uint64_t)address & ~0x1);
+    return (const void*)((uint64_t)address & ~0x1);
 }
 
 static const uint16_t thumb_32bit_mask = 0b1111100000000000;  //  this one can be a const int.
@@ -29,13 +29,13 @@ static const uint16_t thumb_32bit_mask = 0b1111100000000000;  //  this one can b
 #define THUMB_32BIT_INSTRUCTION_PATTERN2 0b1111000000000000
 #define THUMB_32BIT_INSTRUCTION_PATTERN3 0b1111100000000000
 
-uint32_t get_instruction_length(void* address)
+uint32_t GetInstructionLength(const void* entry_point)
 {
-    if(!is_address_thumb_mode(address))
+    if(!IsAddressThumbMode(entry_point))
     {
         return 4;
     }
-    uint16_t halfword = *(uint16_t*)entry_point_to_code_pointer(address);
+    uint16_t halfword = *(uint16_t*) EntryPointToCodePointer(entry_point);
     uint16_t masked = halfword & thumb_32bit_mask;
     switch(masked)
     {
@@ -48,7 +48,7 @@ uint32_t get_instruction_length(void* address)
     }
 }
 
-uint32_t get_argument(ucontext_t* c, unsigned int index)
+uint32_t GetArgument(ucontext_t *c, unsigned int index)
 {
     mcontext_t* state_info = &(c->uc_mcontext);
     switch(index)
@@ -67,7 +67,7 @@ uint32_t get_argument(ucontext_t* c, unsigned int index)
     }
 }
 
-void set_argument(ucontext_t* c, unsigned int index, uint32_t val)
+void SetArgument(ucontext_t *c, unsigned int index, uint32_t val)
 {
     mcontext_t* state_info = &(c->uc_mcontext);
     switch(index)
@@ -91,17 +91,17 @@ void set_argument(ucontext_t* c, unsigned int index, uint32_t val)
     }
 }
 
-InstructionInfo extract_next_executed_instruction(ucontext_t* ctx)
+struct InstructionInfo ExtractNextExecutedInstruction(ucontext_t *ctx)
 {
-    InstructionInfo result;
+    struct InstructionInfo result;
     mcontext_t* stateInfo = &ctx->uc_mcontext;
 
     result.thumb = (stateInfo->arm_cpsr & CPSR_FLAG_THUMB) != 0;
 
     void* addr = (void*)stateInfo->arm_pc + ((result.thumb) ? 1 : 0);
-    void* next_addr = addr + get_instruction_length(addr);
+    void* next_addr = addr + GetInstructionLength(addr);
 
     result.call_addr = next_addr;
-    result.mem_addr = entry_point_to_code_pointer(next_addr);
+    result.mem_addr = EntryPointToCodePointer(next_addr);
     return result;
 }

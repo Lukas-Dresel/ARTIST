@@ -11,14 +11,13 @@
 #include <ucontext.h>
 
 struct InstructionInfo;
-typedef struct InstructionInfo InstructionInfo;
 
-void* entry_point_to_code_pointer(void* address);
-uint32_t get_instruction_length(void* address);
+const void*             EntryPointToCodePointer(const void *entry_point);
+uint32_t                GetInstructionLength(const void *entry_point);
 
-uint32_t get_argument(ucontext_t *c, unsigned int index);
-void set_argument(ucontext_t *c, unsigned int index, uint32_t val);
-InstructionInfo extract_next_executed_instruction(ucontext_t *ctx);
+uint32_t                GetArgument(ucontext_t *c, unsigned int index);
+void                    SetArgument(ucontext_t *c, unsigned int index, uint32_t val);
+struct InstructionInfo  ExtractNextExecutedInstruction(ucontext_t *ctx);
 
 
 #endif //NDKTEST_ABI_H

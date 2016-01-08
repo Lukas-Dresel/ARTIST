@@ -36,7 +36,7 @@ void destroy_breakpoints()
 
 /*static void breakpoint_handler(void *trap_addr, ucontext_t *context, void *additionalArg)
 {
-    InstructionInfo next_instr = extract_next_executed_instruction(context);
+    InstructionInfo next_instr = ExtractNextExecutedInstruction(context);
     LOGD("SingleStep-Handler: Next instruction assumed to be: "PRINT_PTR, (uintptr_t)next_instr.call_addr);
 
     LOGD("Attempting to install next trappoint in single step chain. ");

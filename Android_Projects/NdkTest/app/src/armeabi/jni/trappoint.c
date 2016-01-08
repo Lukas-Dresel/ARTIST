@@ -176,8 +176,8 @@ TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK
         trap->handler = handler;
         trap->handler_args = additionalArgs;
 
-        trap->target.thumb = is_address_thumb_mode(addr);
-        trap->target.mem_addr = entry_point_to_code_pointer(addr);
+        trap->target.thumb = IsAddressThumbMode(addr);
+        trap->target.mem_addr = EntryPointToCodePointer(addr);
         trap->target.call_addr = addr;
 
         trap->instr_size = trap->target.thumb ? 2 : 4;

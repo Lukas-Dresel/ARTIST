@@ -7,6 +7,7 @@
 
 
 #include <stdint.h>
+#include "oat_internal.h"
 
 void log_elf_oat_file_info(void *oat_begin, void *oat_end);
 
@@ -17,7 +18,7 @@ void log_oat_key_value_storage_contents(const struct OatHeader *hdr);
 void log_oat_dex_file_storage_contents(const struct OatHeader *hdr);
 
 void log_oat_dex_file_method_offsets_content(const struct OatHeader *oat_header,
-                                             const struct OatClass *oat_class,
+                                             const struct OatClassData *oat_class,
                                              uint32_t method_index);
 
 void log_oat_dex_file_class_def_contents(const uint8_t *oat_class_pointer);

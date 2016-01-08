@@ -238,6 +238,7 @@ uint32_t                        GetIndexForFieldID(const struct DexHeader *hdr, 
 
 inline const struct ClassDef *  GetClassDefArray(const struct DexHeader *hdr);
 const struct ClassDef *         GetClassDef(const struct DexHeader *hdr, uint16_t class_def_index);
+const char*                     GetClassDefName(const struct DexHeader* hdr, const struct ClassDef* c);
 uint16_t                        GetIndexForClassDef(const struct DexHeader *hdr, const struct ClassDef *class_def);
 
 inline int32_t                  GetStringLength(struct DexHeader *hdr, const struct StringID *string_id);
@@ -248,11 +249,17 @@ const char *                    StringDataByIdx(const struct DexHeader *hdr, uin
 
 
 const struct StringID *         FindStringIDByModifiedUTF8StringValue(const struct DexHeader *hdr, const char *string);
-const struct StringID *         FindStringIDByUTF16Value(const struct DexHeader *hdr, const uint16_t *string, size_t length);
+const struct StringID *         FindStringIDByUTF16Value(const struct DexHeader *hdr, const uint16_t *s, size_t length);
 
 const struct TypeID *           FindTypeIDByStringIndex(const struct DexHeader *hdr, uint32_t string_index);
 
-bool                            CreateTypeListFromStringSignature(const struct DexHeader *hdr, const struct String *signature, uint16_t *return_type_idx, uint16_t *param_type_idxs, uint32_t max_num_writable_parameters, uint32_t *num_written_parameters);
+bool                            CreateTypeListFromStringSignature(const struct DexHeader *hdr,
+                                                                  const struct String *signature,
+                                                                  uint16_t *return_type_idx, uint16_t *
+                                                                  param_type_idxs,
+                                                                  uint32_t max_num_writable_parameters,
+                                                                  uint32_t *num_written_parameters);
+
 const struct ProtoID*           FindProtoIDBySignatureString(const struct DexHeader* hdr, const char* signature);
 
 const struct ClassDef *         FindClassDefByTypeIndex(const struct DexHeader *hdr, uint16_t type_index);

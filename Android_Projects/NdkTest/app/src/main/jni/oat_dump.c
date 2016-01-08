@@ -5,12 +5,10 @@
 #include "oat_dump.h"
 #include "logging.h"
 #include "dex_class_data.h"
-#include "oat_internal.h"
 #include "error.h"
 #include "bit_vector_util.h"
 #include "abi_interface.h"
 #include "dex_internal.h"
-#include "oat.h"
 
 void log_elf_oat_file_info(void *oat_begin, void *oat_end)
 {
@@ -32,7 +30,7 @@ void log_oat_header_info(const struct OatHeader *hdr)
 
     clear_last_error();
     LOGD("InstructionSet:                                %d (%s)", hdr->instruction_set_,
-         repr_InstructionSet(hdr->instruction_set_));
+         GetInstructionSetRepresentation(hdr->instruction_set_));
     if (error_occurred())
     {
         LOGE("Found invalid instruction set in Oat Header at "
@@ -158,7 +156,7 @@ void log_oat_dex_file_storage_contents(const struct OatHeader *hdr)
     }
 }
 
-void log_oat_dex_file_method_offsets_content(const struct OatHeader* oat_header, const struct OatClass* oat_class, uint32_t method_index)
+void log_oat_dex_file_method_offsets_content(const struct OatHeader* oat_header, const struct OatClassData * oat_class, uint32_t method_index)
 {
     CHECK_NE(oat_header, NULL);
     CHECK_NE(oat_class, NULL);
@@ -196,8 +194,9 @@ void log_oat_dex_file_method_offsets_content(const struct OatHeader* oat_header,
 
     LOGD("Method %d has OatMethodOffsets entry has code offset 0x%08x", method_index, oat_method_offset.code_offset_);
 
-    const byte* code_pointer = entry_point_to_code_pointer((void*) oat_header + oat_method_offset.code_offset_);
-    struct OatQuickMethodHeader* code_header = ((struct OatQuickMethodHeader*)code_pointer) - 1;
+    const byte* code_pointer = EntryPointToCodePointer(
+            (void *) oat_header + oat_method_offset.code_offset_);
+    struct OatQuickMethodHeader * code_header = ((struct OatQuickMethodHeader *)code_pointer) - 1;
     LOGD("OatQuickMethodHeader: ");
     LOGD("Code Size: %d", code_header->code_size_);
     LOGD("Frame Size in bytes: %d", code_header->frame_info_.frame_size_in_bytes_);
@@ -226,7 +225,7 @@ void log_oat_dex_file_class_def_contents(const uint8_t* oat_class_pointer)
 
     uint32_t bitmap_size = 0;
     const byte* bitmap_pointer = NULL;
-    const struct OatMethodOffsets* methods_pointer;
+    const struct OatMethodOffsets * methods_pointer;
     if (oat_class_type == kOatClassSomeCompiled)
     {
         bitmap_size = *((uint32_t*)after_type_pointer);
@@ -242,7 +241,7 @@ void log_oat_dex_file_class_def_contents(const uint8_t* oat_class_pointer)
         methods_pointer = (void*)after_type_pointer;
     }
 
-    struct OatMethodOffsets* methods_pointer_ = (struct OatMethodOffsets*)methods_pointer;
+    struct OatMethodOffsets * methods_pointer_ = (struct OatMethodOffsets *)methods_pointer;
     LOGD("Oat Class Methods Pointer: "PRINT_PTR, (uintptr_t)methods_pointer);
 }
 void log_oat_dex_file_class_defs_contents(const struct OatHeader *oat_header, const struct DexHeader *hdr,
@@ -307,7 +306,7 @@ void log_dex_file_type_id_contents(const struct DexHeader* hdr, uint32_t type_id
 }
 void log_dex_file_field_id_contents(const struct DexHeader* hdr, uint32_t field_id_index)
 {
-    if(!IsValidIndex(field_id_index)
+    if(!IsValidIndex(field_id_index))
     {
         return;
     }
