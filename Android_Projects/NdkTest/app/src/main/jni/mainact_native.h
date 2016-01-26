@@ -54,7 +54,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwrite
  */
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpQuickEntryPointsInfo(JNIEnv* , jobject);
 
-/
+/*
  * Class:     com_example_lukas_ndktest_MainActivity
  * Method:    testOverwriteOwnFunction
  * Signature: ()V

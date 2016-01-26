@@ -1,4 +1,5 @@
 #include "elfanalyzer.h"
+#include "util/memory.h"
 
 struct dump_callback_args
 {

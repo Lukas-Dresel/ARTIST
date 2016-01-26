@@ -31,7 +31,7 @@ static void install_signal_handler(int signal, void *handler, struct sigaction *
 
     struct sigaction action;
 
-    action.sa_sigaction = (void (*)(int, siginfo*, void*))handler;
+    action.sa_sigaction = (void (*)(int, siginfo_t*, void*))handler;
     action.sa_flags = SA_SIGINFO | SA_RESTART;
 
     if (sigaction(signal, &action, old_action) != 0) {
