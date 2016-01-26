@@ -13,6 +13,12 @@
 #define LOG_LEVEL_FATAL 6
 #define LOG_LEVEL_NOLOG 7
 
+
+// Supported Oat versions
+#define OAT_VERSION_045 0
+#define OAT_VERSION_064 1
+
+
 #endif
 
 

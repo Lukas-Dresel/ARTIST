@@ -3,9 +3,13 @@
 
 #include "config_constants.h"
 
-#define TARGET_ARCHITECTURE                 ARCHITECTURE_ARM
 #define LOG_LEVEL                           LOG_LEVEL_ALL
-#define DEBUG
+
+#define OAT_VERSION OAT_VERSION_064
+
+//#define TARGET_ARCHITECTURE                 ARCHITECTURE_ARM
+//#define DEBUG
+//#define DEBUG_WAIT
 
 #endif
 
