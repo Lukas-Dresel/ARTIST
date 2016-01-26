@@ -18,31 +18,31 @@ static bool dump_callback(void* addr, uint64_t currentOffset, int numBytes, void
     return true;
 }
 
-static bool dumpElf64Bytes(JNIEnv* env, const unsigned char* name, const void* addr, uint64_t numBytes)
+static bool dumpElf64Bytes(JNIEnv* env, const char* name, const void* addr, uint64_t numBytes)
 {
     struct dump_callback_args args;
     args.name = name;
     return iterate_byte_array_chunks(env, addr, numBytes, 16, (OUTPUT_CALLBACK)dump_callback, &args);
 }
-static bool dumpElf64Word(JNIEnv* env, const unsigned char* name, const void* addr)
+static bool dumpElf64Word(JNIEnv* env, const char* name, const void* addr)
 {
     struct dump_callback_args args;
     args.name = name;
     return iterate_byte_array_chunks(env, addr, sizeof(Elf64_Word), sizeof(Elf64_Word), (OUTPUT_CALLBACK)dump_callback, &args);
 }
-static bool dumpElf64Half(JNIEnv* env, const unsigned char* name, const void* addr)
+static bool dumpElf64Half(JNIEnv* env, const char* name, const void* addr)
 {
     struct dump_callback_args args;
     args.name = name;
     return iterate_byte_array_chunks(env, addr, sizeof(Elf64_Half), sizeof(Elf64_Half), (OUTPUT_CALLBACK)dump_callback, &args);
 }
-static bool dumpElf64Addr(JNIEnv* env, const unsigned char* name, const void* addr)
+static bool dumpElf64Addr(JNIEnv* env, const char* name, const void* addr)
 {
     struct dump_callback_args args;
     args.name = name;
     return iterate_byte_array_chunks(env, addr, sizeof(Elf64_Addr), sizeof(Elf64_Addr), (OUTPUT_CALLBACK)dump_callback, &args);
 }
-static bool dumpElf64Offs(JNIEnv* env, const unsigned char* name, const void* addr)
+static bool dumpElf64Offs(JNIEnv* env, const char* name, const void* addr)
 {
     struct dump_callback_args args;
     args.name = name;
