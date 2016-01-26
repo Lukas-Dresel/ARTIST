@@ -8,6 +8,9 @@
 #include "art/oat.h"
 #include "abi/abi_interface.h"
 #include "art/oat_dump.h"
+#include "art/leb128.h"
+#include "art/modifiers.h"
+#include "util/memory.h"
 
 
 #ifdef __cplusplus
@@ -155,48 +158,135 @@ Java_com_example_lukas_ndktest_MainActivity_dumpQuickEntryPointsInfo(JNIEnv *env
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEnv *env, jobject instance)
-{
-    void* elf_begin = (void*)0x706a8000;
-    void* elf_oat_begin = elf_begin + 0x1000; // The oat section usually starts in the next page
-    void *elf_oat_end = (void*)0x7368d000;
+Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEnv *env, jobject instance) {
+    void *elf_begin = (void *) 0x706a8000;
+    void *elf_oat_begin = elf_begin + 0x1000; // The oat section usually starts in the next page
+    void *elf_oat_end = (void *) 0x7368d000;
 
     LOGI("/data/dalvik-cache/arm/system@framework@boot.oat");
-    hexdump_primitive((const void*)elf_oat_begin, 0x10, 0x10);
-    hexdump_primitive((const void*)elf_oat_end, 0x10, 0x10);
+    hexdump_primitive((const void *) elf_oat_begin, 0x10, 0x10);
+    hexdump_primitive((const void *) elf_oat_end, 0x10, 0x10);
 
-    struct OatFile      oat;
-    struct OatDexFile   core_libart_jar;
-    struct OatClass     dalvik_system_BaseDexClassLoader;
-    struct OatMethod    findLibrary;
+    struct OatFile oat;
+    struct OatDexFile core_libart_jar;
+    struct OatClass dalvik_system_BaseDexClassLoader;
+    struct OatMethod findLibrary;
 
-    if(!oat_Setup(&oat, elf_oat_begin, elf_oat_end))
-    {
+    if (!oat_Setup(&oat, elf_oat_begin, elf_oat_end)) {
         return;
     }
     LOGD("Setup our oat file!");
-    if(!oat_FindDexFile(&oat, &core_libart_jar, "/system/framework/core-libart.jar"))
-    {
+    if (!oat_FindDexFile(&oat, &core_libart_jar, "/system/framework/core-libart.jar")) {
         return;
     }
     LOGD("Found OatDexFile /system/framework/core-libart.jar");
-    if(!oat_FindClass(&core_libart_jar, &dalvik_system_BaseDexClassLoader, "Ldalvik/system/BaseDexClassLoader;"))
-    {
+    if (!oat_FindClass(&core_libart_jar, &dalvik_system_BaseDexClassLoader,
+                       "Ldalvik/system/BaseDexClassLoader;")) {
         return;
     }
     LOGD("Found OatClass dalvik.system.BaseDexClassLoader");
 
 
-    uint16_t class_def_index = GetIndexForClassDef(core_libart_jar.data.dex_file_pointer, dalvik_system_BaseDexClassLoader.dex_class.class_def);
+    uint16_t class_def_index = GetIndexForClassDef(core_libart_jar.data.dex_file_pointer,
+                                                   dalvik_system_BaseDexClassLoader.dex_class.class_def);
 
     log_dex_file_class_def_contents(core_libart_jar.data.dex_file_pointer, class_def_index);
-    log_oat_dex_file_class_def_contents(dalvik_system_BaseDexClassLoader.oat_class_data.backing_memory_address);
+    log_oat_dex_file_class_def_contents(
+            dalvik_system_BaseDexClassLoader.oat_class_data.backing_memory_address);
 
-    if(!oat_FindVirtualMethod(&dalvik_system_BaseDexClassLoader, &findLibrary, "findLibrary", "(Ljava/lang/String;)Ljava/lang/String;"))
-    {
+    if (!oat_FindVirtualMethod(&dalvik_system_BaseDexClassLoader, &findLibrary, "findLibrary",
+                               "(Ljava/lang/String;)Ljava/lang/String;")) {
         return;
     }
     LOGD("Found OatMethod findLibrary");
+
+
+    struct DecodedMethod *decoded = &findLibrary.dex_method.decoded_method_data;
+    LOGD("Method contents before overwrite: ");
+    LOGD("Method contents ["
+                 PRINT_PTR
+                 " (Size: %d)]", (uintptr_t) decoded->backing_memory_address,
+         decoded->backing_memory_size);
+    LOGD("Method Id index difference: %x", decoded->method_idx_diff);
+    LOGD("Access Flags:               %x", decoded->access_flags);
+    LOGD("Code Offset:                %x", decoded->code_off);
+
+
+    void *data = decoded->backing_memory_address;
+
+    if (!set_memory_protection(data, decoded->backing_memory_size, true, true, false))
+    {
+        LOGF("Could not change the memory protections of the encoded method to allow for writing.");
+        return;
+    }
+    DecodeUnsignedLeb128((const uint8_t**)&data); // Skip the Method id index as it stays the same.
+
+    uint32_t old_access_flags = decoded->access_flags;
+    uint32_t new_access_flags = decoded->access_flags | kAccNative;
+    size_t old_flag_size = UnsignedLeb128Size(old_access_flags);
+    size_t new_flag_size = UnsignedLeb128Size(new_access_flags);
+
+    int size_diff = new_flag_size - old_flag_size;
+    LOGD("Size difference: %d", size_diff);
+
+    if(new_flag_size > old_flag_size)
+    {
+        CHECK(size_diff == 1); // Since kAccNative is 0x80 the difference can't be more than 1
+
+        LOGD("Since the access flags value is too low, its encoding changes by setting this method to native.");
+        LOGD("We have to modify the code_offset value to compensate for this so the overall size of the EncodedMethod stays the same.");
+        uint32_t code_offset_size = UnsignedLeb128Size(decoded->code_off);
+        if(code_offset_size <= 1)
+        {
+            // TODO
+            // If our code offset has an encoding of only 1 byte we are shit out of luck,
+            // because we simply have no room for modifications
+            //
+            // Possible Workarounds:
+            //
+            // Actually do enlarge the file to hold our modifications
+            // (infeasible propably, too many changes necessary, offsets break etc.)
+            //
+            // Try modifying the next function as well with a simple redirection trampoline to give us more space to work with.
+            // (Doesn't really solve the problem as this e.g. only works if our method is not the last on in the array.)
+            LOGF("Simply nothing we can do this method cannot be hooked this way. It's code offset is too small to allow for any changes.");
+        }
+        else
+        {
+            LOGD("code_offset modification is possible, the code_offset is large enough.");
+            uint32_t uleb128_sized_values[] = {0, 1 << 0, 1 << 7, 1 << 14, 1 << 21, 1 << 28};
+
+            EncodeUnsignedLeb128(data, new_access_flags);
+            LOGD("Overwrote access flags with value %x", new_access_flags);
+            // Overwrite the code offset with a value 1 smaller to keep the size constant afterwards.
+            EncodeUnsignedLeb128(data + new_flag_size, uleb128_sized_values[code_offset_size - 1]);
+            LOGD("Overwrote code offset with value %x", uleb128_sized_values[code_offset_size - 1]);
+        }
+    }
+    else
+    {
+        CHECK(size_diff == 0); // Oring with a value where higher values are set should never change the encoding size.
+
+        LOGD("The access flags were set high enough no tricky code_offset manipulation necessary.");
+        // No further write are necessary since we overwrite with a value of the exact same encoding size.
+        EncodeUnsignedLeb128(data, new_access_flags);
+        LOGD("Overwrote access flags with value %x", new_access_flags);
+    }
+
+    if (!oat_FindVirtualMethod(&dalvik_system_BaseDexClassLoader, &findLibrary, "findLibrary", "(Ljava/lang/String;)Ljava/lang/String;")) {
+        return;
+    }
+    LOGD("Re-parsed the findLibrary method.");
+
+
+    decoded = &findLibrary.dex_method.decoded_method_data;
+    LOGD("Method contents after overwrite: ");
+    LOGD("Method contents ["PRINT_PTR" (Size: %d)]", (uintptr_t) decoded->backing_memory_address,
+         decoded->backing_memory_size);
+    LOGD("Method Id index difference: %x", decoded->method_idx_diff);
+    LOGD("Access Flags:               %x", decoded->access_flags);
+    LOGD("Code Offset:                %x", decoded->code_off);
+
     log_dex_file_method_id_contents(core_libart_jar.data.dex_file_pointer, GetIndexForMethodID(core_libart_jar.data.dex_file_pointer, findLibrary.dex_method.method_id));
     log_oat_dex_file_method_offsets_content(oat.header, &dalvik_system_BaseDexClassLoader.oat_class_data, findLibrary.dex_method.class_method_idx);
 }

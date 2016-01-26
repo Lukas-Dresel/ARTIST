@@ -38,9 +38,10 @@ public class MainActivity extends Activity
         Log.i(TAG, String.format("DexClassLoader: Package Name:   %s", c.getPackage().getName()));
 
         this.dumpQuickEntryPointsInfo();
+        this.testHookingInterpretedFunction();
+        this.dumpMainOatInternals();
 
         //this.testHookingAOTCompiledFunction();
-        //this.testHookingInterpretedFunction();
         //this.dumpMainOatInternals();
         //this.testBreakpointAtoi();
 
