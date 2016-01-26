@@ -256,7 +256,7 @@ const struct ClassDef *         GetClassDefArray(const struct DexHeader *hdr);
 const struct ClassDef *         GetClassDef(const struct DexHeader *hdr, uint16_t class_def_index);
 uint16_t                        GetIndexForClassDef(const struct DexHeader *hdr, const struct ClassDef *class_def);
 const char*                     GetClassDefName(const struct DexHeader* hdr, const struct ClassDef* c);
-const char*                     GetClassDefNameByIndex(const struct DexHeader* hdr, const struct ClassDef* c);
+const char*                     GetClassDefNameByIndex(const struct DexHeader* hdr, uint16_t index);
 
 int32_t                         GetStringLength(struct DexHeader *hdr, const struct StringID *string_id);
 const char *                    GetStringDataAndUtf16Length(const struct DexHeader *hdr, const struct StringID *string_id, uint32_t *utf16_length);

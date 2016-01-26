@@ -493,17 +493,14 @@ const char* GetClassDefName(const struct DexHeader* hdr, const struct ClassDef* 
     return GetStringDataByIdx(hdr, type_id->descriptor_idx_);
 }
 
-const char* GetClassDefNameByIndex(const struct DexHeader* hdr, const struct ClassDef* c)
+const char* GetClassDefNameByIndex(const struct DexHeader* hdr, uint16_t index)
 {
-    CHECK_RETURNNULL(hdr != NULL);
-    CHECK_RETURNNULL(c != NULL);
-
-    const struct TypeID* type_id = GetTypeID(hdr, c->class_idx_);
-    if(NULL == type_id)
+    if(hdr == NULL || !IsValidIndex16(index) || index >= hdr->class_defs_size_)
     {
         return NULL;
     }
-    return GetStringDataByIdx(hdr, type_id->descriptor_idx_);
+    const struct ClassDef* c = GetClassDef(hdr, index);
+    return GetClassDefName(hdr, c);
 }
 
 
