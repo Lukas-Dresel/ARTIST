@@ -248,6 +248,7 @@ void log_oat_dex_file_class_defs_contents(const struct OatHeader *oat_header, co
     LOGD("OatDexFile Class Definitions:");
     for (size_t class_def_index = 0; class_def_index < hdr->class_defs_size_; class_def_index++)
     {
+        LOGD("OatDexFile Class Definition #%d", class_def_index);
         uint32_t class_def_offset = class_def_offsets_pointer[class_def_index];
         const byte *oat_class_pointer = ((byte *) oat_header) + class_def_offset;
         log_oat_dex_file_class_def_contents(oat_class_pointer);
