@@ -5,7 +5,7 @@
 #include <inttypes.h>
 
 #include "config.h"
-#include "macros.h"
+#include "util/macros.h"
 
 #include <string.h>
 #include <jni.h>

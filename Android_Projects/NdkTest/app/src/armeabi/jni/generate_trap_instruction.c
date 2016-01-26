@@ -3,7 +3,7 @@
 //
 #include "generate_trap_instruction.h"
 
-#include "../../main/jni/trappoint_interface.h"
+#include "../../main/jni/hooking/trappoint_interface.h"
 #include "../../main/jni/logging.h"
 #include "bkpt.h"
 #include "illegal_instruction.h"

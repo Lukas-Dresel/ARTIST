@@ -8,9 +8,14 @@
 
 #include <stdint.h>
 
-#include "../../main/jni/trappoint_interface.h"
-#include "../../main/jni/list.h"
+#include "../../main/jni/hooking/trappoint_interface.h"
+#include "../../main/jni/util/list.h"
 #include "abi.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 typedef struct ThumbCodeInfo
 {
@@ -42,5 +47,9 @@ struct TrapPointInfo
 
     struct list_head        installed;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //NDKTEST_TRAPPOINT_H

@@ -49,6 +49,13 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwrite
 
 /*
  * Class:     com_example_lukas_ndktest_MainActivity
+ * Method:    dumpQuickEntryPointsInfo
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpQuickEntryPointsInfo(JNIEnv* , jobject);
+
+/*
+ * Class:     com_example_lukas_ndktest_MainActivity
  * Method:    testOverwriteOwnFunction
  * Signature: ()V
  */
@@ -56,7 +63,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testOverwrite
         JNIEnv *, jobject);
 
 JNIEXPORT void JNICALL
-        Java_com_example_lukas_ndktest_MainActivity_testOverwritingJavaCode(JNIEnv *env,
+        Java_com_example_lukas_ndktest_MainActivity_testHookingAOTCompiledFunction(JNIEnv *env,
                                                                             jobject instance);
 
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testSingleStep(

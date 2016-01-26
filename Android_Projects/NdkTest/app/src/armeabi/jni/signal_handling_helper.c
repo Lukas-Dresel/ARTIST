@@ -2,7 +2,7 @@
 // Created by Lukas on 8/14/2015.
 //
 
-#include "../../main/jni/signal_handling_helper.h"
+#include "../../main/jni/abi/signal_handling_helper.h"
 #include "../../main/jni/logging.h"
 #include "cpsr_util.h"
 

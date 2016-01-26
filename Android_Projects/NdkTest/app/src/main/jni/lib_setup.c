@@ -1,7 +1,12 @@
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include "lib_setup.h"
 #include "system_info.h"
-#include "trappoint_interface.h"
-#include "breakpoint.h"
+#include "hooking/trappoint_interface.h"
+#include "hooking/breakpoint.h"
 
 void init()
 {
@@ -17,6 +22,9 @@ void destroy()
     destroy_system_info();
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 
 

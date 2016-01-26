@@ -7,11 +7,10 @@
 
 #include <sys/ucontext.h>
 
-#include "../../main/jni/abi_interface.h"
 #include "cpsr_util.h"
-#include "../../main/jni/util.h"
+#include "../../main/jni/util/util.h"
 
-bool        IsAddressThumbMode(void *address)
+bool        IsAddressThumbMode(const void *address)
 {
     void* aligned = align_address_to_size(address, 4);
     uint32_t offset = (uint32_t)(address - aligned);

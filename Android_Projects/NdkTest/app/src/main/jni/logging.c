@@ -2,9 +2,11 @@
 // Created by Lukas on 8/21/2015.
 //
 
+#include <stdio.h>
 #include "logging.h"
-#include "exceptions.h"
-#include "memory.h"
+#include "util/memory.h"
+#include "util/exceptions.h"
+#include "util/util.h"
 
 static bool hexdump_callback(void *addr, uint64_t currentOffset, int numBytes, void *additionalInfo)
 {

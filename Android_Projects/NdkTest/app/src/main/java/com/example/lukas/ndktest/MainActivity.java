@@ -6,14 +6,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
-import com.example.lukas.ndktest.MemoryAnalysis.MemoryAnalyzer;
-import com.example.lukas.ndktest.MemoryAnalysis.MemoryInfo;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 
 import dalvik.system.BaseDexClassLoader;
-import dalvik.system.DexClassLoader;
 
 
 public class MainActivity extends Activity
@@ -43,13 +37,18 @@ public class MainActivity extends Activity
         Log.i(TAG, String.format("DexClassLoader: Name:           %s", c.getName()));
         Log.i(TAG, String.format("DexClassLoader: Package Name:   %s", c.getPackage().getName()));
 
+        this.dumpQuickEntryPointsInfo();
 
+        //this.testHookingAOTCompiledFunction();
+        //this.testHookingInterpretedFunction();
+        //this.dumpMainOatInternals();
         //this.testBreakpointAtoi();
+
+        this.mOutput.setText(String.format("Bits of %d: %d", 10, Integer.bitCount(10)));
 
         /*Log.d(TAG, "Overwriting java code.");
         this.tryNukeDexContent();
         Log.d(TAG, "Overwrote java code.");
-        this.mOutput.setText(String.format("Bits of %d: %d", 10, Integer.bitCount(10)));
         this.logCoolNumber();
 
         try
@@ -102,11 +101,14 @@ public class MainActivity extends Activity
         return super.onOptionsItemSelected(item);
     }
 
-    private native void testOverwritingJavaCode();
+    private native void dumpQuickEntryPointsInfo();
+    private native void testHookingAOTCompiledFunction();
+    private native void testHookingInterpretedFunction();
     private native void testSingleStep();
     private native void testBreakpointAtoi();
     private native void tryNukeDexContent();
 
+    private native void dumpMainOatInternals();
     private native void dumpProcessMemoryMap();
 
     static

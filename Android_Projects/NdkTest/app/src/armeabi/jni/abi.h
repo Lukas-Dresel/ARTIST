@@ -15,6 +15,6 @@ struct InstructionInfo
     bool        thumb;
 };
 
-bool IsAddressThumbMode(void *address);
+bool IsAddressThumbMode(const void *address);
 
 #endif //NDKTEST_ABI_H

@@ -19,7 +19,7 @@ model {
         debug {
             isJniDebuggable = true
             ndk.with {
-                CFlags += "-DDEBUG_WAIT"
+                //CFlags += "-DDEBUG_WAIT"
             }
         }
         release {
@@ -35,6 +35,8 @@ model {
         CFlags += "--std=gnu99"
         CFlags += "-Wno-pointer-to-int-cast"
         CFlags += "-Wno-int-to-pointer-cast"
+        cppFlags += "-fpermissive"
+        stl = "stlport_shared"
     }
     android.productFlavors {
         create("armeabi") {
@@ -56,6 +58,6 @@ repositories {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.2.1'
-    compile 'com.google.code.gson:gson:2.3'
+    compile 'com.google.code.gson:gson:2.4'
     compile 'com.google.guava:guava:18.0'
 }
