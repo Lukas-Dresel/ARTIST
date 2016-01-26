@@ -1,2 +1,4 @@
-/build
-/app-*
+/build/
+/app-armv7-release/
+/app-armv7-release-opt/
+*.apk

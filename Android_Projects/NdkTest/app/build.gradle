@@ -1,7 +1,5 @@
 apply plugin: 'com.android.model.application'
 
-
-// Check out for details http://tools.android.com/tech-docs/new-build-system/gradle-experimental
 model {
     android {
         compileSdkVersion = 22
@@ -13,63 +11,47 @@ model {
             targetSdkVersion.apiLevel = 22
             versionCode = 1
             versionName = "1.0"
+
+
         }
     }
-    android.ndk {
-        moduleName = "NdkTest"
-        ldLibs += "log"
-        ldLibs += "dl"
-        CFlags += "-g"
-        CFlags += "-mthumb"
-        CFlags += "--std=gnu99"
-        CFlags += "-Wno-pointer-to-int-cast"
-        CFlags += "-Wno-int-to-pointer-cast"
-    }
-
-    android.sources {
-        main {
-            jni {
-                source {
-                    srcDirs 'src/main/jni'
-                }
-            }
-        }
-    }
-
     android.buildTypes {
         debug {
             isJniDebuggable = true
+            ndk.with {
+                //CFlags += "-DDEBUG_WAIT"
+            }
         }
         release {
             isMinifyEnabled = false
             proguardFiles += file('proguard-rules.pro')
         }
     }
+    android.ndk {
+        moduleName = "NdkTest"
+        ldLibs += "log"
+        ldLibs += "dl"
+        CFlags += "-marm"
+        CFlags += "--std=gnu99"
+        CFlags += "-Wno-pointer-to-int-cast"
+        CFlags += "-Wno-int-to-pointer-cast"
+        cppFlags += "-fpermissive"
+        stl = "stlport_shared"
+    }
     android.productFlavors {
-        create("x86") {
-            ndk.with {
-                abiFilters += "x86"
-            }
-        }
-        create("mips") {
-            ndk.with {
-                abiFilters += "mips"
-            }
-        }
-        create("armv7") {
-            ndk.with {
-                abiFilters += "armeabi-v7a"
-            }
-        }
-        create("arm") {
+        create("armeabi") {
             ndk.with {
                 abiFilters += "armeabi"
             }
         }
-        create("fat") {
+        create("armeabi-v7a") {
+            ndk.with {
+                abiFilters += "armeabi-v7a"
+            }
         }
     }
 }
+
 repositories {
     mavenCentral()
 }
@@ -77,6 +59,6 @@ repositories {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.2.1'
-    compile 'com.google.code.gson:gson:2.3'
+    compile 'com.google.code.gson:gson:2.4'
     compile 'com.google.guava:guava:18.0'
 }
