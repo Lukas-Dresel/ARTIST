@@ -157,8 +157,8 @@ Java_com_example_lukas_ndktest_MainActivity_dumpQuickEntryPointsInfo(JNIEnv *env
     LOGD("The current_thread_pointer lies at "PRINT_PTR, (uintptr_t) current_thread_pointer);
 }
 
-JNIEXPORT void JNICALL
-Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEnv *env, jobject instance) {
+static bool setupBootOat(struct OatFile *oat_file)
+{
     void *elf_begin = (void *) 0x706a8000;
     void *elf_oat_begin = elf_begin + 0x1000; // The oat section usually starts in the next page
     void *elf_oat_end = (void *) 0x7368d000;
@@ -167,12 +167,19 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEn
     hexdump_primitive((const void *) elf_oat_begin, 0x10, 0x10);
     hexdump_primitive((const void *) elf_oat_end, 0x10, 0x10);
 
+    return oat_Setup(oat_file, elf_oat_begin, elf_oat_end);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEnv *env, jobject instance) {
+
     struct OatFile oat;
     struct OatDexFile core_libart_jar;
     struct OatClass dalvik_system_BaseDexClassLoader;
     struct OatMethod findLibrary;
 
-    if (!oat_Setup(&oat, elf_oat_begin, elf_oat_end)) {
+    if (!setupBootOat(&oat))
+    {
         return;
     }
     LOGD("Setup our oat file!");
@@ -265,7 +272,7 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEn
     }
     else
     {
-        CHECK(size_diff == 0); // Oring with a value where higher values are set should never change the encoding size.
+        CHECK(size_diff == 0); // Or'ing with a value where higher values are set should never change the encoding size.
 
         LOGD("The access flags were set high enough no tricky code_offset manipulation necessary.");
         // No further write are necessary since we overwrite with a value of the exact same encoding size.
@@ -416,6 +423,54 @@ Java_com_example_lukas_ndktest_MainActivity_dumpMainOatInternals(JNIEnv *env, jo
 
     log_elf_oat_file_info(oat_start, elf_end);
 }
+
+JNIEXPORT void JNICALL
+Java_com_example_lukas_ndktest_MainActivity_dumpLibArtInterpretedFunctionsInNonAbstractClasses(
+        JNIEnv *env, jobject instance)
+{
+    struct OatFile mainOat;
+    if(!setupBootOat(&mainOat))
+    {
+        LOGF("Could not parse system/framework/boot.oat.");
+        return;
+    }
+
+    struct OatDexFile current_oat_dex;
+    for(uint32_t dex_file_index = 0; dex_file_index < NumDexFiles(mainOat.header); dex_file_index++)
+    {
+        if(!oat_GetOatDexFile(&mainOat, &current_oat_dex, dex_file_index))
+        {
+            // Since they are all sequentially stored if one fails all should fail.
+            LOGF("Error parsing oat dex file #%d", dex_file_index);
+            return;
+        }
+        LOGD("OatDexFile #%d: %s", current_oat_dex.index, current_oat_dex.data.location_string.content);
+        struct OatClass clazz;
+        for(uint32_t i = 0; i < dex_NumberOfClassDefs(current_oat_dex.data.dex_file_pointer); i++)
+        {
+            if(!oat_GetClass(&current_oat_dex, &clazz, i))
+            {
+                // Here as well, if one's broken all of them should be.
+                LOGF("Error parsing oat class def data for class #%d in oat_dex_file #%d.", i, dex_file_index);
+                return;
+            }
+            if( (clazz.oat_class_data.class_type == kOatClassAllCompiled) ||
+                (clazz.dex_class.class_def->access_flags_ & kAccAbstract != 0) ||
+                (clazz.dex_class.class_def->access_flags_ & kAccInterface != 0) )
+            {
+                continue;
+            }
+            const char* class_name = GetClassDefNameByIndex(clazz.oat_dex_file->data.dex_file_pointer, (uint16_t)i);
+            if(strchr(class_name, '$') != NULL)
+            {
+                continue;
+            }
+            LOGD("Class [%d]: %s => %s", i, class_name, GetOatClassTypeRepresentation(clazz.oat_class_data.class_type));
+        }
+    }
+
+}
+
 #ifdef __cplusplus
 }
 #endif

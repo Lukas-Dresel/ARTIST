@@ -9,6 +9,18 @@
 #include "oat.h"
 #include "../logging.h"
 
+void*   oat_PointerFromFileOffset(const struct OatFile* oat_file, uint32_t offset)
+{
+    CHECK_RETURNNULL(oat_file != NULL);
+    if(offset == 0)
+    {
+        // If an offset is set to zero, it is invalid.
+        // This would also not make any sense as this would have to point to the OatFile Header.
+        return NULL;
+    }
+    return oat_file->begin + offset;
+}
+
 bool oat_Setup(struct OatFile* result, void *mem_begin, void *mem_end)
 {
     CHECK_RETURNFALSE(mem_begin != NULL && mem_end != NULL);
@@ -53,6 +65,29 @@ bool oat_FindDexFile(struct OatFile* oat_file, struct OatDexFile* result, const 
     // Not found
     return false;
 }
+bool oat_GetOatDexFile(struct OatFile* oat_file, struct OatDexFile* result, uint32_t index)
+{
+    CHECK_RETURNFALSE(oat_file != NULL);
+    CHECK_RETURNFALSE(result != NULL);
+    CHECK_RETURNFALSE(index < NumDexFiles(oat_file->header));
+
+    const void* data = GetDexFileStoragePointer(oat_file->header);
+    for(uint32_t i = 0; i < index + 1; i++)
+    {
+        // just continue reading through the OatDexFiles until we reach our desired index
+        if(!ReadOatDexFileData(&data, oat_file->end, &result->data, oat_file->header))
+        {
+            LOGF("Error decoding oat dex file #%d", i);
+            // Decoding only fails when running out of bounds. In
+            // that case the other ones shouldn't be valid either.
+            return false;
+        }
+    }
+    result->oat_file = oat_file;
+    result->index = index;
+    return true;
+
+}
 
 bool oat_FindClass(const struct OatDexFile* oat_dex_file, struct OatClass * clazz, char* descriptor)
 {
@@ -66,10 +101,36 @@ bool oat_FindClass(const struct OatDexFile* oat_dex_file, struct OatClass * claz
     }
 
     uint32_t class_def_index = GetIndexForClassDef(oat_dex_file->data.dex_file_pointer, clazz->dex_class.class_def);
-    void* oat_class_def_pointer = oat_dex_file->oat_file->begin + oat_dex_file->data.class_definition_offsets[class_def_index];
+    uint32_t class_def_offset = oat_dex_file->data.class_definition_offsets[class_def_index];
+
+    void* oat_class_def_pointer = oat_PointerFromFileOffset(oat_dex_file->oat_file, class_def_offset);
     if(!DecodeOatClassData(oat_class_def_pointer, oat_dex_file->oat_file->end, &clazz->oat_class_data))
     {
         LOGF("Error decoding OatClassData %s at index %d in OatDexFile %s.", descriptor, class_def_index, oat_dex_file->data.location_string.content);
+        return false;
+    }
+    clazz->oat_dex_file = oat_dex_file;
+    return true;
+}
+bool oat_GetClass(const struct OatDexFile* oat_dex_file, struct OatClass* clazz, uint16_t class_def_index)
+{
+    CHECK_RETURNFALSE(oat_dex_file != NULL);
+    CHECK_RETURNFALSE(clazz != NULL);
+
+    // Unnecessary check as the dex_GetClass call should check this. If it doesn't that is horrible.
+    // CHECK(class_def_index < dex_NumberOfClassDefs(oat_dex_file->data.dex_file_pointer));
+
+    if(!dex_GetClass(oat_dex_file->data.dex_file_pointer, &clazz->dex_class, class_def_index))
+    {
+        return false;
+    }
+
+    uint32_t class_def_offset = oat_dex_file->data.class_definition_offsets[class_def_index];
+
+    void* oat_class_def_pointer = oat_PointerFromFileOffset(oat_dex_file->oat_file, class_def_offset);
+    if(!DecodeOatClassData(oat_class_def_pointer, oat_dex_file->oat_file->end, &clazz->oat_class_data))
+    {
+        LOGF("Error decoding OatClassData at index %d in OatDexFile %s.", class_def_index, oat_dex_file->data.location_string.content);
         return false;
     }
     clazz->oat_dex_file = oat_dex_file;

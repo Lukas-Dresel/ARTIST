@@ -172,7 +172,6 @@ struct DecodedClassData
 
 
 
-
 bool        IsMagicValid(const uint8_t *magic);
 bool        IsVersionValid(const uint8_t *magic);
 uint32_t    GetVersion(struct DexHeader *hdr);

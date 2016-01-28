@@ -7,6 +7,26 @@
 #include "dex.h"
 #include "../logging.h"
 
+uint32_t dex_NumberOfStrings  ( const struct DexHeader* hdr )
+{
+    CHECK_RETURN(hdr != NULL, 0);
+    return hdr->string_ids_size_;
+}
+uint32_t dex_NumberOfMethods  ( const struct DexHeader* hdr )
+{
+    CHECK_RETURN(hdr != NULL, 0);
+    return hdr->method_ids_size_;
+}
+uint32_t dex_NumberOfFields   ( const struct DexHeader* hdr )
+{
+    CHECK_RETURN(hdr != NULL, 0);
+    return hdr->field_ids_size_;
+}
+uint32_t dex_NumberOfClassDefs  ( const struct DexHeader* hdr )
+{
+    CHECK_RETURN(hdr != NULL, 0);
+    return hdr->class_defs_size_;
+}
 
 bool dex_FindClass(const struct DexHeader *hdr, struct DexClass *result, char *descriptor)
 {
@@ -15,6 +35,27 @@ bool dex_FindClass(const struct DexHeader *hdr, struct DexClass *result, char *d
     CHECK_RETURNFALSE(descriptor != NULL);
 
     const struct ClassDef *found_class = FindClassDefByDescriptor(hdr, descriptor);
+    if (found_class == NULL)
+    {
+        return false;
+    }
+    result->dex_header = hdr;
+    result->class_def = found_class;
+    memset(&result->decoded_class_data, 0, sizeof(result->decoded_class_data));
+    if (result->class_def->class_data_off_ != 0)
+    {
+        const uint8_t *class_data_pointer = (void *) hdr + found_class->class_data_off_;
+        DecodeEncodedClassDataItem(hdr, &result->decoded_class_data, &class_data_pointer);
+    }
+    return true;
+}
+bool dex_GetClass(const struct DexHeader* hdr, struct DexClass* result, uint16_t class_def_index)
+{
+    CHECK_RETURNFALSE(hdr != NULL);
+    CHECK_RETURNFALSE(result != NULL);
+    CHECK_RETURNFALSE(class_def_index < dex_NumberOfClassDefs(hdr));
+
+    const struct ClassDef *found_class = GetClassDef(hdr, class_def_index);
     if (found_class == NULL)
     {
         return false;

@@ -38,6 +38,7 @@ public class MainActivity extends Activity
         Log.i(TAG, String.format("DexClassLoader: Package Name:   %s", c.getPackage().getName()));
 
         this.dumpQuickEntryPointsInfo();
+        this.dumpLibArtInterpretedFunctionsInNonAbstractClasses();
         this.testHookingInterpretedFunction();
         this.dumpMainOatInternals();
 
@@ -102,13 +103,15 @@ public class MainActivity extends Activity
         return super.onOptionsItemSelected(item);
     }
 
-    private native void dumpQuickEntryPointsInfo();
     private native void testHookingAOTCompiledFunction();
     private native void testHookingInterpretedFunction();
     private native void testSingleStep();
     private native void testBreakpointAtoi();
     private native void tryNukeDexContent();
 
+
+    private native void dumpQuickEntryPointsInfo();
+    private native void dumpLibArtInterpretedFunctionsInNonAbstractClasses();
     private native void dumpMainOatInternals();
     private native void dumpProcessMemoryMap();
 
