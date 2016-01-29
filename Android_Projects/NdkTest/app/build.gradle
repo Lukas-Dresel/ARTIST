@@ -11,42 +11,36 @@ model {
             targetSdkVersion.apiLevel = 22
             versionCode = 1
             versionName = "1.0"
-
-
-        }
-    }
-    android.buildTypes {
-        debug {
-            isJniDebuggable = true
-            ndk.with {
-                //CFlags += "-DDEBUG_WAIT"
-            }
-        }
-        release {
-            isMinifyEnabled = false
-            proguardFiles += file('proguard-rules.pro')
         }
     }
     android.ndk {
         moduleName = "NdkTest"
-        ldLibs += "log"
-        ldLibs += "dl"
-        CFlags += "-marm"
-        CFlags += "--std=gnu99"
-        CFlags += "-Wno-pointer-to-int-cast"
-        CFlags += "-Wno-int-to-pointer-cast"
-        cppFlags += "-fpermissive"
+        ldLibs.addAll(["log", "dl"])
+        CFlags.addAll(["-marm", "--std=gnu99"])
+        CFlags.addAll(["-Wno-pointer-to-int-cast", "-Wno-int-to-pointer-cast"])
+        cppFlags.add("-fpermissive")
         stl = "stlport_shared"
+    }
+    android.buildTypes {
+        debug {
+            ndk.with {
+                debuggable = true
+            }
+        }
+        release {
+            minifyEnabled = false
+            proguardFiles.add(file('proguard-rules.pro'))
+        }
     }
     android.productFlavors {
         create("armeabi") {
             ndk.with {
-                abiFilters += "armeabi"
+                abiFilters.add("armeabi")
             }
         }
         create("armeabi-v7a") {
             ndk.with {
-                abiFilters += "armeabi-v7a"
+                abiFilters.add("armeabi-v7a")
             }
         }
     }
