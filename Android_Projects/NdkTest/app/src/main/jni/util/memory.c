@@ -60,22 +60,20 @@ bool iterate_byte_array_chunks_primitive(const void *addr, jlong numBytes, jlong
 bool set_memory_protection(const void *startingAddress, jlong numBytes, jboolean read, jboolean write,
                            jboolean execute)
 {
-    LOGD("set_memory_protection(addr="
+    /*LOGD("set_memory_protection(addr="
                  PRINT_PTR
                  ", numBytes=%lld, read=%s, write=%s, exec=%s", (uintptr_t) startingAddress,
-         numBytes, read ? "true" : "false", write ? "true" : "false", execute ? "true" : "false");
+         numBytes, read ? "true" : "false", write ? "true" : "false", execute ? "true" : "false");*/
     int protections = 0;
 
     protections |= read ? PROT_READ : 0;
     protections |= write ? PROT_WRITE : 0;
     protections |= execute ? PROT_EXEC : 0;
 
-    LOGD("Protections combined.");
-
     void *addr = get_page_base(startingAddress);
     jlong size = numBytes + (startingAddress - addr);
 
-    LOGD("Attempting to change memory permissions to %x...", protections);
+    /*LOGD("Attempting to change memory permissions to %x...", protections);*/
     if (mprotect(addr, size, protections) == -1)
     {
         LOGE("Failed to change protections of %lld bytes from address "
@@ -83,9 +81,9 @@ bool set_memory_protection(const void *startingAddress, jlong numBytes, jboolean
                      ", errno: %d", size, (uintptr_t) addr, errno);
         return false;
     }
-    LOGD("Success! Changed protections of %lld bytes from address "
+    /*LOGD("Success! Changed protections of %lld bytes from address "
                  PRINT_PTR
-                 " to full.", size, (uintptr_t) addr);
+                 " to full.", size, (uintptr_t) addr);*/
     return true;
 }
 void *allocate_memory_chunk(size_t size)
