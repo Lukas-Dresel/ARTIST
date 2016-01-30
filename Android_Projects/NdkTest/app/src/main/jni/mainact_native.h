@@ -56,6 +56,14 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpQuickEntr
 
 /*
  * Class:     com_example_lukas_ndktest_MainActivity
+ * Method:    testHookingThreadEntryPoints
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_example_lukas_ndktest_MainActivity_testHookingThreadEntryPoints(JNIEnv *env, jobject instance);
+
+/*
+ * Class:     com_example_lukas_ndktest_MainActivity
  * Method:    testOverwriteOwnFunction
  * Signature: ()V
  */

@@ -1,3 +1,4 @@
+#include <jni.h>
 #include "mainact_native.h"
 
 #include "lib_setup.h"
@@ -144,6 +145,10 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAO
     }
 }
 
+void handler_suspend(void *trap_addr, ucontext_t *context, void *args)
+{
+    LOGD("Handling at "PRINT_PTR, (uintptr_t)trap_addr);
+}
 void* GetCurrentThreadObjectPointer()
 {
     void* table;
@@ -155,6 +160,22 @@ Java_com_example_lukas_ndktest_MainActivity_dumpQuickEntryPointsInfo(JNIEnv *env
 {
     void *current_thread_pointer = GetCurrentThreadObjectPointer();
     LOGD("The current_thread_pointer lies at "PRINT_PTR, (uintptr_t) current_thread_pointer);
+}
+JNIEXPORT void JNICALL
+Java_com_example_lukas_ndktest_MainActivity_testHookingThreadEntryPoints(JNIEnv *env, jobject instance)
+{
+    #include "art/oat_version_dependent/VERSION045/thread.h"
+    #include "art/oat_version_dependent/VERSION045/entrypoints/quick_entrypoints.h"
+    void *current_thread_pointer = GetCurrentThreadObjectPointer();
+    LOGD("The current_thread_pointer lies at "PRINT_PTR, (uintptr_t) current_thread_pointer);
+    struct Thread* thread = (struct Thread*)current_thread_pointer;
+
+    struct QuickEntryPoints* quick_ep = &thread->tlsPtr_.quick_entrypoints;
+    install_trappoint(quick_ep->pTestSuspend, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+    install_trappoint(quick_ep->pInvokeDirectTrampolineWithAccessCheck, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+    install_trappoint(quick_ep->pInvokeVirtualTrampolineWithAccessCheck, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+    install_trappoint(quick_ep->pInvokeStaticTrampolineWithAccessCheck, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+    install_trappoint(quick_ep->pInvokeSuperTrampolineWithAccessCheck, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
 }
 
 static bool setupBootOat(struct OatFile *oat_file)
@@ -169,6 +190,71 @@ static bool setupBootOat(struct OatFile *oat_file)
 
     return oat_Setup(oat_file, elf_oat_begin, elf_oat_end);
 }
+
+static bool findFunction(struct OatFile* oat, struct OatDexFile* oat_dex, struct OatClass* class, struct OatMethod* method,
+                         char* dex_path, char* class_name, char* method_name, char* method_proto, bool direct) {
+
+    if (!oat_FindDexFile(oat, oat_dex, dex_path)) {
+        return false;
+    }
+    LOGD("Found OatDexFile %s", dex_path);
+
+    if (!oat_FindClass(oat_dex, class, class_name)) {
+        return false;
+    }
+    LOGD("Found OatClass dalvik.system.DexFile");
+
+    if (direct) {
+        if (!oat_FindDirectMethod(class, method, method_name, method_proto)) {
+            return false;
+        }
+    }
+    else {
+        if (!oat_FindVirtualMethod(class, method, method_name, method_proto)) {
+            return false;
+        }
+    }
+    LOGD("Found %s OatMethod %s [%s]", (direct) ? "direct" : "virtual", method_name, method_proto);
+    return true;
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_lukas_ndktest_MainActivity_testHookingDexLoadClass(JNIEnv *env, jobject instance) {
+
+    struct OatFile oat;
+    struct OatDexFile core_libart_jar;
+    struct OatClass dalvik_system_DexFile;
+    struct OatMethod loadClass;
+
+    if (!setupBootOat(&oat))
+    {
+        return;
+    }
+    if(!findFunction(&oat, &core_libart_jar, &dalvik_system_DexFile, &loadClass,
+                 "/system/framework/core-libart.jar",
+                 "Ldalvik/system/DexFile;",
+                 "loadClass", "(Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Class;", false))
+    {
+        return;
+    }
+
+    if(!oat_HasQuickCompiledCode(&loadClass))
+    {
+        LOGD("No compiled code was found for this method.");
+    }
+    else
+    {
+        void* entrypoint = oat_GetQuickCompiledEntryPoint(&loadClass);
+        LOGD("This method has its entrypoint at "PRINT_PTR, (uintptr_t)entrypoint);
+    }
+    uint16_t class_def_index = GetIndexForClassDef(core_libart_jar.data.dex_file_pointer,
+                                                   dalvik_system_DexFile.dex_class.class_def);
+
+    log_dex_file_class_def_contents(core_libart_jar.data.dex_file_pointer, class_def_index);
+    log_oat_dex_file_class_def_contents(dalvik_system_DexFile.oat_class_data.backing_memory_address);
+}
+
+
 
 JNIEXPORT void JNICALL
 Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEnv *env, jobject instance) {
@@ -461,15 +547,65 @@ Java_com_example_lukas_ndktest_MainActivity_dumpLibArtInterpretedFunctionsInNonA
                 continue;
             }
             const char* class_name = GetClassDefNameByIndex(clazz.oat_dex_file->data.dex_file_pointer, (uint16_t)i);
-            if(strchr(class_name, '$') != NULL)
+            /*if(strchr(class_name, '$') != NULL)
             {
                 continue;
-            }
+            }*/
             LOGD("Class [%d]: %s => %s", i, class_name, GetOatClassTypeRepresentation(clazz.oat_class_data.class_type));
         }
     }
 
 }
+
+
+
+JNIEXPORT jclass JNICALL
+Java_dalvik_system_DexFile_loadClass(JNIEnv *env, jobject instance, jstring name_, jobject loader)
+{
+    const char *name = (*env)->GetStringUTFChars(env, name_, 0);
+
+    LOGD("Tried to load class: %s", name);
+
+    (*env)->ReleaseStringUTFChars(env, name_, name);
+    return NULL;
+}
+JNIEXPORT jclass JNICALL
+Java_dalvik_system_BaseDexClassLoader_findLibrary(JNIEnv *env, jobject instance, jstring name_)
+{
+    const char *name = (*env)->GetStringUTFChars(env, name_, 0);
+
+    LOGD("Tried to find library: %s", name);
+
+    (*env)->ReleaseStringUTFChars(env, name_, name);
+    return NULL;
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_lukas_ndktest_MainActivity_registerNativeHookForFindLibrary(JNIEnv *env,
+                                                                           jobject instance)
+{
+    jclass clazz = (*env)->FindClass(env, "dalvik/system/BaseDexClassLoader");
+    JNINativeMethod hook = {
+            .fnPtr = (void*)&Java_dalvik_system_DexFile_loadClass,
+            .name = "loadClass",
+            .signature = "(Ljava/lang/String;)Ljava/lang/Class;"
+    };
+    (*env)->RegisterNatives(env, clazz, &hook, 1);
+}
+JNIEXPORT void JNICALL
+Java_com_example_lukas_ndktest_MainActivity_registerNativeHookForDexFileLoadClass(JNIEnv *env,
+                                                                           jobject instance)
+{
+    jclass clazz = (*env)->FindClass(env, "dalvik/system/DexFile");
+    JNINativeMethod hook = {
+            .fnPtr = (void*)&Java_dalvik_system_DexFile_loadClass,
+            .name = "loadClass",
+            .signature = "(Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Class;"
+    };
+    (*env)->RegisterNatives(env, clazz, &hook, 1);
+}
+
+
 
 #ifdef __cplusplus
 }
