@@ -14,24 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef ART_RUNTIME_JVALUE_H_
-#define ART_RUNTIME_JVALUE_H_
+#ifndef ART_RUNTIME_ENTRYPOINTS_JNI_JNI_ENTRYPOINTS_H_
+#define ART_RUNTIME_ENTRYPOINTS_JNI_JNI_ENTRYPOINTS_H_
 
-#include <stdint.h>
-#include "../../../util/macros.h"
+#include <jni.h>
+#include "../../../../util/macros.h"
 
-union PACKED(4) JValue {
-  uint8_t z;
-  int8_t b;
-  uint16_t c;
-  int16_t s;
-  int32_t i;
-  int64_t j;
-  float f;
-  double d;
-  void* l;
+// Pointers to functions that are called by JNI trampolines via thread-local storage.
+struct PACKED(4) JniEntryPoints {
+  // Called when the JNI method isn't registered.
+  void* (*pDlsymLookup)(JNIEnv* env, jobject);
 };
 
-}  // namespace art
-
-#endif  // ART_RUNTIME_JVALUE_H_
+#endif  // ART_RUNTIME_ENTRYPOINTS_JNI_JNI_ENTRYPOINTS_H_

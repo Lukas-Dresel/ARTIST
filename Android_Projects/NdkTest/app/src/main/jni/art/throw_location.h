@@ -17,11 +17,8 @@
 #ifndef ART_RUNTIME_THROW_LOCATION_H_
 #define ART_RUNTIME_THROW_LOCATION_H_
 
-#include "../util/macros.h"
 #include <stdint.h>
-#include <string>
-
-namespace art {
+#include "../util/macros.h"
 
 struct PACKED(4) ThrowLocation {
   // The 'this' reference of the throwing method.
@@ -35,7 +32,5 @@ struct PACKED(4) ThrowLocation {
   uint32_t pad_;
 #endif
 };
-
-}  // namespace art
 
 #endif  // ART_RUNTIME_THROW_LOCATION_H_

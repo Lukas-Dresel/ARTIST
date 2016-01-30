@@ -17,11 +17,12 @@
 #ifndef ART_RUNTIME_ENTRYPOINTS_INTERPRETER_INTERPRETER_ENTRYPOINTS_H_
 #define ART_RUNTIME_ENTRYPOINTS_INTERPRETER_INTERPRETER_ENTRYPOINTS_H_
 
-#include "../../../../../util/macros.h"
-#include "../../../../dex_internal.h"
-#include "../../thread.h"
-#include "../../../../stack.h"
-#include "../../../../jvalue.h"
+#include "../thread.h"
+#include "../stack.h"
+
+#include "../../../../util/macros.h"
+#include "../../../dex_internal.h"
+#include "../../../jvalue.h"
 
 // Pointers to functions that are called by interpreter trampolines via thread-local storage.
 struct PACKED(4) InterpreterEntryPoints {

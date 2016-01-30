@@ -17,14 +17,6 @@
 #ifndef ART_RUNTIME_BASE_MUTEX_H_
 #define ART_RUNTIME_BASE_MUTEX_H_
 
-#include <pthread.h>
-#include <stdint.h>
-
-#include <iosfwd>
-#include <string>
-
-#include "../../util/macros.h"
-
 #if defined(__APPLE__)
 #define ART_USE_FUTEXES 0
 #else
@@ -37,8 +29,6 @@
 #else
 #define HAVE_TIMED_RWLOCK 0
 #endif
-
-namespace art {
 
 // LockLevel is used to impose a lock hierarchy [1] where acquisition of a Mutex at a higher or
 // equal level to a lock a thread holds is invalid. The lock hierarchy achieves a cycle free
@@ -99,7 +89,5 @@ enum LockLevel {
 
   kLockLevelCount  // Must come last.
 };
-
-}  // namespace art
 
 #endif  // ART_RUNTIME_BASE_MUTEX_H_

@@ -9,13 +9,12 @@
 #include <jni.h>
 #include <stdint.h>
 #include <pthread.h>
-#include "runtime_stats.h"
-#include "jvalue.h"
-#include "stack.h"
+#include "../../runtime_stats.h"
+#include "../../jvalue.h"
+#include "../../stack.h"
 #include "entrypoints/interpreter_entrypoints.h"
 #include "entrypoints/jni_entrypoints.h"
 #include "entrypoints/quick_entrypoints.h"
-#include "jni_env_ext.h.h"
 
 enum ThreadPriority {
     kMinThreadPriority = 1,
@@ -141,11 +140,11 @@ struct PACKED(4) tls_ptr_sized_values
     uintptr_t* suspend_trigger;
 
     // Every thread may have an associated JNI environment
-    struct JNIEnvExt* jni_env;
+    void* jni_env; // struct JNIEnvExt* jni_env;
 
     // Temporary storage to transfer a pre-allocated JNIEnvExt from the creating thread to the
     // created thread.
-    struct JNIEnvExt* tmp_jni_env;
+    void* tmp_jni_env; // struct JNIEnvExt* tmp_jni_env;
 
     // Initialized to "this". On certain architectures (such as x86) reading off of Thread::Current
     // is easy but getting the address of Thread::Current is hard. This field can be read off of

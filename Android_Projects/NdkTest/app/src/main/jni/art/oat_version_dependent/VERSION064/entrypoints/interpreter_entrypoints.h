@@ -7,6 +7,7 @@
 
 #include "../../../../util/macros.h"
 #include "../../../dex_internal.h"
+#include "../../../stack.h"
 
 struct Thread;
 // Pointers to functions that are called by interpreter trampolines via thread-local storage.

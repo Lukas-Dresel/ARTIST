@@ -19,8 +19,8 @@
 
 #include <jni.h>
 
-#include "../../../../../util/macros.h"
-#include "../../../VERSION045/thread.h"
+#include "../../../../util/macros.h"
+#include "../thread.h"
 
 #define QUICK_ENTRYPOINT_OFFSET(ptr_size, x) \
     Thread::QuickEntryPointOffset<ptr_size>(OFFSETOF_MEMBER(QuickEntryPoints, x))
