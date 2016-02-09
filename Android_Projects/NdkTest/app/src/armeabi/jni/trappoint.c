@@ -92,7 +92,7 @@ static bool signal_handler_invoke_trappoint_handler(int signal, siginfo_t *sigIn
                  PRINT_PTR
                  ".", (uintptr_t) target);
 
-    TrapPointInfo *trap = find_trappoint_with_predicate(p, target);
+    TrapPointInfo *trap = trappoint_FindWithPredicate(p, target);
     if (trap == NULL) {
         return false;
     }
@@ -113,7 +113,7 @@ static bool signal_handler_invoke_trappoint_handler(int signal, siginfo_t *sigIn
     void*           handler_arg = trap->handler_args;
     void*           trapped_instruction = (void*)trap->target.call_addr;
     // Remove it!
-    uninstall_trappoint(trap);
+    trappoint_Uninstall(trap);
 
     if(handler != NULL)
     {
@@ -167,7 +167,7 @@ static void sigtrap_handler(int signal, siginfo_t *sigInfo, ucontext_t *context)
 }
 
 
-TrapPointInfo *install_trappoint(void *addr, uint32_t method, HOOKCALLBACK handler,
+TrapPointInfo *trappoint_Install(void *addr, uint32_t method, HOOKCALLBACK handler,
                                  void *additionalArgs) {
     if (addr == NULL)
     {
@@ -235,9 +235,11 @@ TrapPointInfo *install_trappoint(void *addr, uint32_t method, HOOKCALLBACK handl
     return NULL;
 }
 
-bool enable_trappoint(TrapPointInfo *trap)
+
+// As of now unused, leaving implementation in case we might want to re-introduce it
+bool trappoint_Enable(TrapPointInfo *trap)
 {
-    if (!validate_TrapPointInfo_contents(trap)) {
+    if (!trappoint_ValidateContents(trap)) {
         return false;
     }
     if (!set_memory_protection(trap->target.mem_addr, trap->instr_size, true, true, true)) {
@@ -256,8 +258,9 @@ bool enable_trappoint(TrapPointInfo *trap)
     }
     return true;
 }
-bool disable_trappoint(TrapPointInfo *trap) {
-    if (!validate_TrapPointInfo_contents(trap)) {
+// As of now unused, leaving implementation in case we might want to re-introduce it
+bool trappoint_Disable(TrapPointInfo *trap) {
+    if (!trappoint_ValidateContents(trap)) {
         return false;
     }
     if (!set_memory_protection(trap->target.mem_addr, trap->instr_size, true, true, true)) {
@@ -276,8 +279,8 @@ bool disable_trappoint(TrapPointInfo *trap) {
     }
     return true;
 }
-void uninstall_trappoint(TrapPointInfo *trap) {
-    if (!disable_trappoint(trap)) {
+void trappoint_Uninstall(TrapPointInfo *trap) {
+    if (!trappoint_Disable(trap)) {
         // The disable function alread tells us what we need to know, as it calls validate
         return;
     }
@@ -327,7 +330,7 @@ void dump_installed_trappoints_info() {
 }
 
 
-bool validate_TrapPointInfo_contents(TrapPointInfo *trap) {
+bool trappoint_ValidateContents(TrapPointInfo *trap) {
     if (trap == NULL) {
         set_last_error("The trappoint supplied was NULL!");
         return false;
@@ -368,7 +371,7 @@ bool validate_TrapPointInfo_contents(TrapPointInfo *trap) {
 }
 
 
-TrapPointInfo *find_trappoint_with_predicate(TRAPPOINT_PREDICATE p, void *args) {
+TrapPointInfo *trappoint_FindWithPredicate(TRAPPOINT_PREDICATE p, void *args) {
     TrapPointInfo *current;
     list_for_each_entry(current, &installed_trappoints, installed) {
         if (p(current, args)) {

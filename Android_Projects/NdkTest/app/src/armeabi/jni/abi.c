@@ -16,7 +16,7 @@ bool        IsAddressThumbMode(const void *address)
     uint32_t offset = (uint32_t)(address - aligned);
     return (offset == 1 || offset == 3);
 }
-const void*InstructionPointerToCodePointer(const void *instruction_pointer)
+const void* InstructionPointerToCodePointer(const void *instruction_pointer)
 {
     return (const void*)((uint64_t) instruction_pointer & ~0x1);
 }
