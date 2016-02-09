@@ -160,6 +160,9 @@ char *              GetOatClassStatusRepresentation(int16_t status);
 char *              GetInstructionSetRepresentation(enum InstructionSet set);
 char *              GetInstructionSetFeaturesRepresentation(uint32_t f);
 
+bool                IsValidOatHeader(const struct OatHeader *hdr);
+bool                IsCurrentOatHeader(const struct OatHeader *hdr);
+
 const char*         GetMagic(const struct OatHeader* hdr);
 uint32_t            GetChecksum(const struct OatHeader* hdr);
 

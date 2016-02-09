@@ -142,14 +142,12 @@ static const void* GetPointerFromOffset(const void* base, uint32_t off)
     return base + off;
 }
 
-static bool IsValid(const struct OatHeader* hdr)
+
+
+bool IsValidOatHeader(const struct OatHeader *hdr)
 {
     CHECK_RETURNFALSE(hdr != NULL);
     if(memcmp(hdr->magic_, kOatMagic, sizeof(kOatMagic)) != 0)
-    {
-        return false;
-    }
-    if(memcmp(hdr->version_, kOatVersion, sizeof(kOatVersion)) != 0)
     {
         return false;
     }
@@ -163,38 +161,43 @@ static bool IsValid(const struct OatHeader* hdr)
     }
     return true;
 }
+bool IsCurrentOatHeader(const struct OatHeader *hdr)
+{
+    CHECK_RETURNFALSE(IsValidOatHeader(hdr));
+    return (memcmp(hdr->version_, kOatVersion, sizeof(kOatVersion)) == 0);
+}
 const char* GetMagic(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return (char*)hdr->magic_;
 }
 uint32_t GetChecksum(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return hdr->adler32_checksum_;
 }
 
 enum InstructionSet GetInstructionSet(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return hdr->instruction_set_;
 }
 uint32_t GetInstructionSetFeaturesBitmap(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return hdr->instruction_set_features_;
 }
 
 uint32_t GetExecutableOffset(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     CHECK(hdr->executable_offset_ > sizeof(struct OatHeader));
     return hdr->executable_offset_;
 }
 
 uint32_t GetJniDlsymLookupOffset(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     CHECK(hdr->jni_dlsym_lookup_offset_ >+ hdr->interpreter_to_compiled_code_bridge_offset_);
     return hdr->jni_dlsym_lookup_offset_;
 }
@@ -205,7 +208,7 @@ const void* GetJniDlSymLookup(const struct OatHeader* hdr)
 
 uint32_t GetQuickGenericJniTrampolineOffset(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     CHECK_GE(hdr->quick_generic_jni_trampoline_offset_, hdr->jni_dlsym_lookup_offset_);
     return hdr->quick_generic_jni_trampoline_offset_;
 }
@@ -216,7 +219,7 @@ const void* GetQuickGenericJniTrampoline(const struct OatHeader* hdr)
 
 uint32_t GetQuickToInterpreterBridgeOffset(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     CHECK_GE(hdr->quick_to_interpreter_bridge_offset_, hdr->quick_resolution_trampoline_offset_);
     return hdr->quick_to_interpreter_bridge_offset_;
 }
@@ -227,28 +230,28 @@ const void* GetQuickToInterpreterBridge(const struct OatHeader* hdr)
 
 int32_t GetImagePatchDelta(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return hdr->image_patch_delta_;
 }
 uint32_t GetImageFileLocationOatChecksum(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return hdr->image_file_location_oat_checksum_;
 }
 uint32_t GetImageFileLocationOatDataBegin(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return hdr->image_file_location_oat_data_begin_;
 }
 
 uint32_t GetKeyValueStoreSize(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return hdr->key_value_store_size_;
 }
 const uint8_t* GetKeyValueStore(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return hdr->key_value_store_;
 }
 
@@ -348,13 +351,13 @@ size_t GetHeaderSize(const struct OatHeader* hdr)
 
 uint32_t NumDexFiles(const struct OatHeader* hdr)
 {
-    CHECK(IsValid(hdr));
+    CHECK(IsValidOatHeader(hdr));
     return hdr->dex_file_count_;
 }
 
 bool IsKeyEnabled(const struct OatHeader* hdr, const char* key)
 {
-    CHECK_RETURNFALSE(IsValid(hdr));
+    CHECK_RETURNFALSE(IsValidOatHeader(hdr));
     CHECK_RETURNFALSE(key != NULL);
     const char* key_value = GetStoreValueByKey(hdr, key);
     return (key_value != NULL && strncmp(key_value, kTrueValue, sizeof(kTrueValue)) == 0);

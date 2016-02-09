@@ -38,9 +38,9 @@ void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
 void handler_change_NewStringUTF_arg(void *trap_addr, ucontext_t *context, void *args)
 {
     LOGI("Inside the trappoint handler...");
-    LOGI("Previously Arg1: %x", GetArgument(context, 1));
+    LOGI("Previously Arg1: %x", (uint32_t)GetArgument(context, 1));
     SetArgument(context, 1, (uint32_t) "HALA HALA HALA!");
-    LOGI("After overwriting Arg1: %x", GetArgument(context, 1));
+    LOGI("After overwriting Arg1: %x", (uint32_t)GetArgument(context, 1));
 }
 
 void handler_hello_world(void *trap_addr, ucontext_t *context, void *args)
@@ -515,6 +515,7 @@ Java_com_example_lukas_ndktest_MainActivity_dumpMainOatInternals(JNIEnv *env, jo
 
     log_elf_oat_file_info(oat_start, elf_end);
 }
+
 
 JNIEXPORT void JNICALL
 Java_com_example_lukas_ndktest_MainActivity_dumpLibArtInterpretedFunctionsInNonAbstractClasses(

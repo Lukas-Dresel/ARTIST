@@ -19,10 +19,15 @@ void *oat_PointerFromFileOffset(const struct OatFile *oat_file, uint32_t offset)
     CHECK_RETURNNULL(oat_file != NULL);
     if (offset == 0) {
         // If an offset is set to zero, it is invalid.
-        // This would also not make any sense as this would have to point to the OatFile Header.
+        // This would not make any sense as this would have to point to the OatFile Header.
         return NULL;
     }
     return oat_file->begin + offset;
+}
+
+bool oat_IsValidHeader(void *mem)
+{
+    return IsValidOatHeader(mem);
 }
 
 bool oat_Setup(struct OatFile *result, void *mem_begin, void *mem_end) {
@@ -33,8 +38,7 @@ bool oat_Setup(struct OatFile *result, void *mem_begin, void *mem_end) {
     result->end = mem_end;
     result->header = (struct OatHeader *) mem_begin;
     result->key_value_storage_start = &result->header->key_value_store_[0];
-    result->dex_file_storage_start =
-            result->key_value_storage_start + result->header->key_value_store_size_;
+    result->dex_file_storage_start = result->key_value_storage_start + result->header->key_value_store_size_;
     return true;
 }
 
