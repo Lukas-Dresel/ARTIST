@@ -6,18 +6,18 @@ extern "C"
 #include "lib_setup.h"
 #include "system_info.h"
 #include "hooking/trappoint_interface.h"
-#include "hooking/breakpoint.h"
+#include "hooking/self_patching_trappoint.h"
 
 void init()
 {
     init_system_info();
     init_trappoints();
-    init_breakpoints();
+    init_self_patching_trappoints();
 }
 
 void destroy()
 {
-    destroy_breakpoints();
+    destroy_self_patching_trappoints();
     destroy_trappoints();
     destroy_system_info();
 }

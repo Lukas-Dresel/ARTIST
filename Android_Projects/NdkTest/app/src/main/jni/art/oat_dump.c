@@ -193,7 +193,8 @@ void log_oat_dex_file_method_offsets_content(const struct OatHeader* oat_header,
 
     LOGD("Method %d has OatMethodOffsets entry has code offset 0x%08x", method_index, oat_method_offset.code_offset_);
 
-    const byte* code_pointer = EntryPointToCodePointer((void *) oat_header + oat_method_offset.code_offset_);
+    const byte* code_pointer = InstructionPointerToCodePointer(
+            (void *) oat_header + oat_method_offset.code_offset_);
     struct OatQuickMethodHeader * code_header = ((struct OatQuickMethodHeader *)code_pointer) - 1;
     LOGD("OatQuickMethodHeader: ");
     LOGD("Code Size: %d", code_header->code_size_);

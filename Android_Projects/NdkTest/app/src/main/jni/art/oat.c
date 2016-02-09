@@ -196,7 +196,7 @@ void *oat_GetQuickCompiledEntryPoint(const struct OatMethod *m) {
 }
 
 void *oat_GetQuickCompiledMemoryPointer(const struct OatMethod *m) {
-    return (void *) EntryPointToCodePointer(oat_GetQuickCompiledEntryPoint(m));
+    return (void *) InstructionPointerToCodePointer(oat_GetQuickCompiledEntryPoint(m));
 }
 
 

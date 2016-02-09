@@ -612,7 +612,7 @@ const void* GetQuickCode(void* base, const struct OatMethodOffsets* off)
 const struct OatQuickMethodHeader* GetOatQuickMethodHeader(void* base, const struct OatMethodOffsets* off)
 {
     // No need for sanity checks, as they are performed in GetQuickCode
-    const void* code_ptr = EntryPointToCodePointer(GetQuickCode(base, off));
+    const void* code_ptr = InstructionPointerToCodePointer(GetQuickCode(base, off));
     if(code_ptr == NULL)
     {
         return NULL;
