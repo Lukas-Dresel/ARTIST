@@ -63,7 +63,7 @@ void run_trap_point_test(JNIEnv *env)
                  PRINT_PTR
                  ")", (uintptr_t) func);
 
-    install_trappoint(func, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
+    trappoint_Install(func, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
                       &handler_change_NewStringUTF_arg, NULL);
 
     dump_installed_trappoints_info();
@@ -139,7 +139,8 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAO
     if(oat_HasQuickCompiledCode(&int_bitcount))
     {
         void* target_addr = oat_GetQuickCompiledEntryPoint(&int_bitcount);
-        install_trappoint(target_addr, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, handler_change_bitcount_arg, (void*)65525);
+        trappoint_Install(target_addr, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
+                          handler_change_bitcount_arg, (void *) 65525);
         LOGD("bitcounts Quick Code Entrypoint:     "PRINT_PTR, (uintptr_t)oat_GetQuickCompiledEntryPoint(&int_bitcount));
         LOGD("bitcounts Quick Code Memory Address: "PRINT_PTR, (uintptr_t)oat_GetQuickCompiledMemoryPointer(&int_bitcount));
     }
@@ -171,11 +172,16 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingThreadEntryPoints(JNIEnv 
     struct Thread* thread = (struct Thread*)current_thread_pointer;
 
     struct QuickEntryPoints* quick_ep = &thread->tlsPtr_.quick_entrypoints;
-    install_trappoint(quick_ep->pTestSuspend, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
-    install_trappoint(quick_ep->pInvokeDirectTrampolineWithAccessCheck, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
-    install_trappoint(quick_ep->pInvokeVirtualTrampolineWithAccessCheck, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
-    install_trappoint(quick_ep->pInvokeStaticTrampolineWithAccessCheck, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
-    install_trappoint(quick_ep->pInvokeSuperTrampolineWithAccessCheck, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+    trappoint_Install(quick_ep->pTestSuspend, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL,
+                      handler_suspend, NULL);
+    trappoint_Install(quick_ep->pInvokeDirectTrampolineWithAccessCheck,
+                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+    trappoint_Install(quick_ep->pInvokeVirtualTrampolineWithAccessCheck,
+                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+    trappoint_Install(quick_ep->pInvokeStaticTrampolineWithAccessCheck,
+                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+    trappoint_Install(quick_ep->pInvokeSuperTrampolineWithAccessCheck,
+                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
 }
 
 static bool setupBootOat(struct OatFile *oat_file)
@@ -442,12 +448,12 @@ void handler_step_function(void *trap_addr, ucontext_t *context, void *args)
     void* start = arg->func_start;
     void* end = arg->func_start + arg->func_size;
 
-    struct InstructionInfo next_instr = ExtractNextExecutedInstruction(context);
-    LOGD("SingleStep-Handler: Next instruction assumed to be: "PRINT_PTR, (uintptr_t)next_instr.call_addr);
-    if(next_instr.call_addr > start && next_instr.call_addr < end)
+    void* next_instruction_pointer = ExtractNextExecutedInstructionPointer(context);
+    LOGD("SingleStep-Handler: Next instruction assumed to be: "PRINT_PTR, (uintptr_t)next_instruction_pointer);
+    if(next_instruction_pointer > start && next_instruction_pointer < end)
     {
         LOGD("Attempting to install next trappoint in single step chain. ");
-        install_trappoint((void*)next_instr.call_addr, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL, handler_step_function, arg);
+        trappoint_Install((void *) next_instruction_pointer, 0, handler_step_function, arg);
     }
     else
     {
