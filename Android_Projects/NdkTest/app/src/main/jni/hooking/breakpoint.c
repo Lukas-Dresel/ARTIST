@@ -15,11 +15,11 @@ void*   Breakpoint_Install      (void *address, uint32_t trap_method, HOOKCALLBA
 }
 bool    Breakpoint_Enable       (void *p)
 {
-    SelfPatchingTrappoint_Enable(p);
+    return SelfPatchingTrappoint_Enable(p);
 }
 bool    Breakpoint_Disable      (void *p)
 {
-    SelfPatchingTrappoint_Disable(p);
+    return SelfPatchingTrappoint_Disable(p);
 }
 void    Breakpoint_Uninstall    (void *p)
 {
