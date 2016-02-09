@@ -16,9 +16,9 @@ bool        IsAddressThumbMode(const void *address)
     uint32_t offset = (uint32_t)(address - aligned);
     return (offset == 1 || offset == 3);
 }
-const void* EntryPointToCodePointer(const void *address)
+const void*InstructionPointerToCodePointer(const void *instruction_pointer)
 {
-    return (const void*)((uint64_t)address & ~0x1);
+    return (const void*)((uint64_t) instruction_pointer & ~0x1);
 }
 
 static const uint16_t thumb_32bit_mask = 0b1111100000000000;  //  this one can be a const int.
@@ -28,13 +28,13 @@ static const uint16_t thumb_32bit_mask = 0b1111100000000000;  //  this one can b
 #define THUMB_32BIT_INSTRUCTION_PATTERN2 0b1111000000000000
 #define THUMB_32BIT_INSTRUCTION_PATTERN3 0b1111100000000000
 
-uint32_t GetInstructionLength(const void* entry_point)
+uint32_t GetInstructionLengthAtInstructionPointer(const void *instruction_pointer)
 {
-    if(!IsAddressThumbMode(entry_point))
+    if(!IsAddressThumbMode(instruction_pointer))
     {
         return 4;
     }
-    uint16_t halfword = *(uint16_t*) EntryPointToCodePointer(entry_point);
+    uint16_t halfword = *(uint16_t*) InstructionPointerToCodePointer(instruction_pointer);
     uint16_t masked = halfword & thumb_32bit_mask;
     switch(masked)
     {
@@ -47,60 +47,63 @@ uint32_t GetInstructionLength(const void* entry_point)
     }
 }
 
-uint32_t GetArgument(ucontext_t *c, unsigned int index)
+uint64_t GetArgument(ucontext_t *c, unsigned int index)
 {
     mcontext_t* state_info = &(c->uc_mcontext);
     switch(index)
     {
         case 0:
-            return state_info->arm_r0;
+            return (uint64_t)state_info->arm_r0;
         case 1:
-            return state_info->arm_r1;
+            return (uint64_t)state_info->arm_r1;
         case 2:
-            return state_info->arm_r2;
+            return (uint64_t)state_info->arm_r2;
         case 3:
-            return state_info->arm_r3;
+            return (uint64_t)state_info->arm_r3;
 
         default:
-            return *(((uint32_t*)(state_info->arm_sp)) + (index - 4));
+            return (uint64_t)*(((uint32_t*)(state_info->arm_sp)) + (index - 4));
     }
 }
 
-void SetArgument(ucontext_t *c, unsigned int index, uint32_t val)
+void SetArgument(ucontext_t *c, unsigned int index, uint64_t val)
 {
     mcontext_t* state_info = &(c->uc_mcontext);
     switch(index)
     {
         case 0:
-            state_info->arm_r0 = val;
+            state_info->arm_r0 = (uint32_t)val;
             break;
         case 1:
-            state_info->arm_r1 = val;
+            state_info->arm_r1 = (uint32_t)val;
             break;
         case 2:
-            state_info->arm_r2 = val;
+            state_info->arm_r2 = (uint32_t)val;
             break;
         case 3:
-            state_info->arm_r3 = val;
+            state_info->arm_r3 = (uint32_t)val;
             break;
 
         default:
-            *(((uint32_t*)(state_info->arm_sp)) + (index - 4)) = val;
+            *(((uint32_t*)(state_info->arm_sp)) + (index - 4)) = (uint32_t)val;
             break;
     }
 }
 
-struct InstructionInfo ExtractNextExecutedInstruction(ucontext_t *ctx)
+void* ExtractNextExecutedInstructionPointer(ucontext_t *ctx)
 {
-    struct InstructionInfo result;
     mcontext_t* stateInfo = &ctx->uc_mcontext;
 
-    result.thumb = (stateInfo->arm_cpsr & CPSR_FLAG_THUMB) != 0;
+    bool thumb = (stateInfo->arm_cpsr & CPSR_FLAG_THUMB) != 0;
 
-    void* addr = (void*)stateInfo->arm_pc + ((result.thumb) ? 1 : 0);
-    void* next_addr = addr + GetInstructionLength(addr);
+    void* addr = (void*)stateInfo->arm_pc + (thumb ? 1 : 0);
+    void* next_addr = addr + GetInstructionLengthAtInstructionPointer(addr);
 
-    result.call_addr = next_addr;
-    result.mem_addr = EntryPointToCodePointer(next_addr);
-    return result;
+    return next_addr;
+}
+void* ExtractReturnAddress(ucontext_t *ctx)
+{
+    mcontext_t* stateInfo = &ctx->uc_mcontext;
+    void* addr = (void*)stateInfo->arm_lr;
+    return addr;
 }

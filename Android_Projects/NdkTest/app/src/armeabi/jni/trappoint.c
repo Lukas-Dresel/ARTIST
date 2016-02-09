@@ -97,35 +97,38 @@ static bool signal_handler_invoke_trappoint_handler(int signal, siginfo_t *sigIn
         return false;
     }
 
-    // Disable the trappoint so that there's no collision with potential trappoint installation the
-    // handler could do.
-    disable_trappoint(trap);
-    if (trap->handler != NULL) {
-        LOGI("Executing registered handler for "
-                     PRINT_PTR
-                     " with arguments"
-                             "("
-                     PRINT_PTR
-                     ", "
-                     PRINT_PTR
-                     ", "
-                     PRINT_PTR
-                     ")",
-             (uintptr_t) (trap->target.mem_addr), (uintptr_t) (context),
-             (uintptr_t) (trap->handler_args));
-
-        trap->handler((void*)trap->target.mem_addr, context, trap->handler_args);
-    }
-    else {
-        LOGI("No trappoint handler for "
-                     PRINT_PTR
-                     " was registered, so it wasn't executed.",
-             (uintptr_t) (trap->target.mem_addr));
-    }
-
-    // Every trappoint has to be removed, as it is necessary to reset the instruction. This is
-    // because on return of the signal handler the offending instruction is re-executed.
+    /*
+     * Every trappoint has to be removed, as it is necessary to reset the instruction. This is
+     * because on return of the signal handler the offending instruction is re-executed.
+     *
+     * That's why we save the information we still need and then uninstall the trappoint.
+     * This executes the handler in a state where no collision with information that is about
+     * to be freed can occur. This allows for example the handler to cause a double-trap by
+     * re-installing another trappoint at the same address. Without uninstalling first this
+     * might cause warnings for installing trappoints at addresses that already have one set.
+     *
+     * But this way the handler gets a clean slate to work with.
+     */
+    HOOKCALLBACK    handler = trap->handler;
+    void*           handler_arg = trap->handler_args;
+    void*           trapped_instruction = (void*)trap->target.call_addr;
+    // Remove it!
     uninstall_trappoint(trap);
+
+    if(handler != NULL)
+    {
+        void* addr = trapped_instruction;
+        LOGD("Executing handler for "PRINT_PTR" with arguments"
+        "("PRINT_PTR", "PRINT_PTR", "PRINT_PTR");",
+             (uintptr_t)addr, (uintptr_t)addr, (uintptr_t)context, (uintptr_t)handler_arg);
+
+        handler(trapped_instruction, context, handler_arg);
+    }
+    else
+    {
+        LOGD("No trappoint handler for "PRINT_PTR" was registered, so it wasn't executed.",
+             (uintptr_t) trapped_instruction);
+    }
     return true;
 }
 static void sigill_handler(int signal, siginfo_t *sigInfo, ucontext_t *context) {
@@ -164,18 +167,42 @@ static void sigtrap_handler(int signal, siginfo_t *sigInfo, ucontext_t *context)
 }
 
 
-TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK handler,
+TrapPointInfo *install_trappoint(void *addr, uint32_t method, HOOKCALLBACK handler,
                                  void *additionalArgs) {
-    if (addr == NULL) {
+    if (addr == NULL)
+    {
         return NULL;
     }
+    if(method == 0)
+    {
+        #ifdef DEFAULT_TRAPPOINT_METHOD
+
+        // A default trapping method was defined use this.
+        method = DEFAULT_TRAPPOINT_METHOD;
+
+        #else
+
+        // No default was specified, pick one randomly to make it harder to counteract
+        if(rand() % 2 == 0)
+        {
+            method = TRAP_METHOD_INSTR_BKPT | TRAP_METHOD_SIG_TRAP;
+        }
+        else
+        {
+            method = TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL;
+        }
+
+        #endif
+    }
+
     TrapPointInfo* trap = (TrapPointInfo*)allocate_memory_chunk(sizeof(TrapPointInfo));
-    if (trap != NULL) {
+    if (trap != NULL)
+    {
         trap->handler = handler;
         trap->handler_args = additionalArgs;
 
         trap->target.thumb = IsAddressThumbMode(addr);
-        trap->target.mem_addr = EntryPointToCodePointer(addr);
+        trap->target.mem_addr = InstructionPointerToCodePointer(addr);
         trap->target.call_addr = addr;
 
         trap->instr_size = trap->target.thumb ? 2 : 4;
@@ -208,7 +235,8 @@ TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK
     return NULL;
 }
 
-bool enable_trappoint(TrapPointInfo *trap) {
+bool enable_trappoint(TrapPointInfo *trap)
+{
     if (!validate_TrapPointInfo_contents(trap)) {
         return false;
     }
@@ -260,33 +288,38 @@ void uninstall_trappoint(TrapPointInfo *trap) {
 void dump_installed_trappoints_info() {
     LOGD("Dumping information on installed trappoints.");
     TrapPointInfo *current;
-    list_for_each_entry(current, &installed_trappoints, installed) {
-        LOGD("FOUND Trappoint for "
-                     PRINT_PTR
-                     "(%s)", (uintptr_t) current->target.mem_addr,
+    list_for_each_entry(current, &installed_trappoints, installed)
+    {
+        LOGD("FOUND Trappoint for "PRINT_PTR"(%s)", (uintptr_t) current->target.mem_addr,
              current->target.thumb ? "THUMB" : "ARM");
-        LOGD("->Handler function: "
-                     PRINT_PTR, (uintptr_t) current->handler);
+
+        LOGD("->Handler function: "PRINT_PTR, (uintptr_t) current->handler);
         LOGD("->Instruction Size: %d", current->instr_size);
 
         LOGD("->Code Info:      ");
-        if ((current->trapping_method & TRAP_METHOD_SIG_ILL) != 0) {
+        if ((current->trapping_method & TRAP_METHOD_SIG_ILL) != 0)
+        {
             LOGD("->Trapping generates SIGILL");
         }
-        if ((current->trapping_method & TRAP_METHOD_SIG_TRAP) != 0) {
+        if ((current->trapping_method & TRAP_METHOD_SIG_TRAP) != 0)
+        {
             LOGD("->Trapping generates SIGTRAP");
         }
-        if ((current->trapping_method & TRAP_METHOD_INSTR_BKPT) != 0) {
+        if ((current->trapping_method & TRAP_METHOD_INSTR_BKPT) != 0)
+        {
             LOGD("->->This is achieved using hardware-specific BKPT instructions.");
         }
-        if ((current->trapping_method & TRAP_METHOD_INSTR_KNOWN_ILLEGAL) != 0) {
+        if ((current->trapping_method & TRAP_METHOD_INSTR_KNOWN_ILLEGAL) != 0)
+        {
             LOGD("->->This is achieved using hardware-specific known illegal instructions.");
         }
-        if (current->target.thumb) {
+        if (current->target.thumb)
+        {
             LOGD("->->Breakpoint:   0x%04x", current->thumbCode.trap_instruction);
             LOGD("->->Preserved:    0x%04x", current->thumbCode.preserved);
         }
-        else {
+        else
+        {
             LOGD("->->Breakpoint:   0x%08x", current->armCode.trap_instruction);
             LOGD("->->Preserved:    0x%08x", current->armCode.preserved);
         }

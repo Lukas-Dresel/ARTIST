@@ -7,6 +7,7 @@
 
 #include <ucontext.h>
 #include <stdbool.h>
+#include "hooking_common.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -21,15 +22,13 @@ extern "C"
 struct TrapPointInfo;
 typedef struct TrapPointInfo TrapPointInfo;
 
-typedef void (*TRAPPOINT_CALLBACK)(void *addr, ucontext_t *ctx, void *additionalArg);
-
 typedef bool (*TRAPPOINT_PREDICATE)(TrapPointInfo *trap, void *args);
 
 void init_trappoints();
 
 void destroy_trappoints();
 
-TrapPointInfo *install_trappoint(void *addr, uint32_t method, TRAPPOINT_CALLBACK handler,
+TrapPointInfo *install_trappoint(void *addr, uint32_t method, HOOKCALLBACK handler,
                                  void *additionalArg);
 
 //TODO add ability to enable/disable trappoints so that it is not necessary to delete the trappoint

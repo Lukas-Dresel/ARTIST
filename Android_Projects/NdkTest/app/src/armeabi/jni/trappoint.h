@@ -31,7 +31,7 @@ typedef struct ArmCodeInfo
 
 struct TrapPointInfo
 {
-    TRAPPOINT_CALLBACK handler;
+    HOOKCALLBACK handler;
     void*                   handler_args;
 
     struct InstructionInfo  target;
@@ -53,3 +53,4 @@ struct TrapPointInfo
 #endif
 
 #endif //NDKTEST_TRAPPOINT_H
+
