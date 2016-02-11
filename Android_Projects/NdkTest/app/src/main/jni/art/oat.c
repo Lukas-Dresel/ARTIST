@@ -69,7 +69,8 @@ bool oat_FindDexFile(struct OatFile *oat_file, struct OatDexFile *result, const 
     return false;
 }
 
-bool oat_GetOatDexFile(struct OatFile *oat_file, struct OatDexFile *result, uint32_t index) {
+bool oat_GetOatDexFile(struct OatFile *oat_file, struct OatDexFile *result, uint32_t index)
+{
     CHECK_RETURNFALSE(oat_file != NULL);
     CHECK_RETURNFALSE(result != NULL);
     CHECK_RETURNFALSE(index < NumDexFiles(oat_file->header));
@@ -90,8 +91,38 @@ bool oat_GetOatDexFile(struct OatFile *oat_file, struct OatDexFile *result, uint
 
 }
 
-bool oat_FindClass(const struct OatDexFile *oat_dex_file, struct OatClass *clazz,
-                   char *descriptor) {
+bool oat_FindClass(struct OatFile* oat, struct OatDexFile* result_oat_dex_file,
+                   struct OatClass *result_clazz, char *descriptor)
+{
+    struct OatDexFile oat_dex_ignored;
+    struct OatClass oat_class_ignored;
+    CHECK_RETURNFALSE(oat != NULL);
+    CHECK_RETURNFALSE(descriptor != NULL);
+    if (result_oat_dex_file == NULL)
+    {
+        result_oat_dex_file = &oat_dex_ignored;
+    }
+    if (result_clazz == NULL)
+    {
+        result_clazz = &oat_class_ignored;
+    }
+    for(uint32_t i = 0; i < oat->header->dex_file_count_; i++)
+    {
+        if(!oat_GetOatDexFile(oat, result_oat_dex_file, i))
+        {
+            return false;
+        }
+        if(oat_FindClassInDex(result_oat_dex_file, result_clazz, descriptor))
+        {
+            return true;
+        }
+    }
+    // Could not find the OatDexFile, so we return false
+    return false;
+}
+bool oat_FindClassInDex(const struct OatDexFile *oat_dex_file, struct OatClass *clazz,
+                    char *descriptor)
+{
     CHECK_RETURNFALSE(oat_dex_file != NULL);
     CHECK_RETURNFALSE(clazz != NULL);
     CHECK_RETURNFALSE(descriptor != NULL);

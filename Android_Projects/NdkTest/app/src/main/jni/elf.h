@@ -26,6 +26,6 @@ enum SegmentType
     GCC_StackExecutability  = PT_GNU_STACK
 };
 
-void dumpElfInfo(JNIEnv* env, const void* addr);
+bool IsValidElfFileHeader(void* p)
 
 #endif

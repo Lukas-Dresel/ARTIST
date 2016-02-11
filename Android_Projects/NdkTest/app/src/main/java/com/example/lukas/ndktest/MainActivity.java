@@ -38,7 +38,16 @@ public class MainActivity extends Activity {
         Log.i(TAG, String.format("DexClassLoader: Name:           %s", c.getName()));
         Log.i(TAG, String.format("DexClassLoader: Package Name:   %s", c.getPackage().getName()));
 
+        this.getClassLoader()
+
+
+        this.dumpProcessMemoryMap();
+        this.testHookingAOTCompiledFunction();
+        this.dumpProcessMemoryMap();
+
+
         this.dumpQuickEntryPointsInfo();
+        this.dumpSystemLoadLibraryState();
         this.testHookingThreadEntryPoints();
 
         try
@@ -153,8 +162,8 @@ public class MainActivity extends Activity {
     private native void testHookingThreadEntryPoints();
 
     private native void dumpLibArtInterpretedFunctionsInNonAbstractClasses();
-
     private native void dumpMainOatInternals();
+    private native void dumpSystemLoadLibraryState();
 
     private native void dumpProcessMemoryMap();
 

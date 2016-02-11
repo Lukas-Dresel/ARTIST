@@ -12,6 +12,7 @@
 #include "art/leb128.h"
 #include "art/modifiers.h"
 #include "util/memory.h"
+#include "memory_map_lookup.h"
 
 
 #ifdef __cplusplus
@@ -106,7 +107,6 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAO
     void* elf_oat_begin = elf_begin + 0x1000; // The oat section usually starts in the next page
     void *elf_oat_end = (void*)0x7368d000;
 
-    LOGI("/data/dalvik-cache/arm/system@framework@boot.oat");
     hexdump_primitive((const void*)elf_oat_begin, 0x10, 0x10);
     hexdump_primitive((const void*)elf_oat_end, 0x10, 0x10);
 
@@ -119,30 +119,25 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAO
     {
         return;
     }
-    LOGD("Setup our oat file!");
     if(!oat_FindDexFile(&oat, &core_libart_jar, "/system/framework/core-libart.jar"))
     {
         return;
     }
-    LOGD("Found OatDexFile /system/framework/core-libart.jar");
-    if(!oat_FindClass(&core_libart_jar, &java_lang_Integer, "Ljava/lang/Integer;"))
+    if(!oat_FindClassInDex(&core_libart_jar, &java_lang_Integer, "Ljava/lang/Integer;"))
     {
         return;
     }
-    LOGD("Found OatClass java.lang.Integer");
     uint16_t class_def_index = GetIndexForClassDef(core_libart_jar.data.dex_file_pointer, java_lang_Integer.dex_class.class_def);
     if(!oat_FindDirectMethod(&java_lang_Integer, &int_bitcount, "bitCount", "(I)I"))
     {
         return;
     }
-    LOGD("Found OatMethod bitcount");
     if(oat_HasQuickCompiledCode(&int_bitcount))
     {
         void* target_addr = oat_GetQuickCompiledEntryPoint(&int_bitcount);
         trappoint_Install(target_addr, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
                           handler_change_bitcount_arg, (void *) 65525);
-        LOGD("bitcounts Quick Code Entrypoint:     "PRINT_PTR, (uintptr_t)oat_GetQuickCompiledEntryPoint(&int_bitcount));
-        LOGD("bitcounts Quick Code Memory Address: "PRINT_PTR, (uintptr_t)oat_GetQuickCompiledMemoryPointer(&int_bitcount));
+        LOGI("Installed trappoint for java.lang.Integer.bitcount()");
     }
 }
 
@@ -205,10 +200,10 @@ static bool findFunction(struct OatFile* oat, struct OatDexFile* oat_dex, struct
     }
     LOGD("Found OatDexFile %s", dex_path);
 
-    if (!oat_FindClass(oat_dex, class, class_name)) {
+    if (!oat_FindClassInDex(oat_dex, class, class_name)) {
         return false;
     }
-    LOGD("Found OatClass dalvik.system.DexFile");
+    LOGD("Found OatClass %s", class_name);
 
     if (direct) {
         if (!oat_FindDirectMethod(class, method, method_name, method_proto)) {
@@ -279,8 +274,8 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEn
         return;
     }
     LOGD("Found OatDexFile /system/framework/core-libart.jar");
-    if (!oat_FindClass(&core_libart_jar, &dalvik_system_BaseDexClassLoader,
-                       "Ldalvik/system/BaseDexClassLoader;")) {
+    if (!oat_FindClassInDex(&core_libart_jar, &dalvik_system_BaseDexClassLoader,
+                            "Ldalvik/system/BaseDexClassLoader;")) {
         return;
     }
     LOGD("Found OatClass dalvik.system.BaseDexClassLoader");
@@ -415,7 +410,7 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEn
         return;
     }
     LOGD("Found OatDexFile /system/framework/core-libart.jar");
-    if(!oat_FindClass(&core_libart_jar, &dalvik_system_DexFile, "Ldalvik/system/DexFile;"))
+    if(!oat_FindClassInDex(&core_libart_jar, &dalvik_system_DexFile, "Ldalvik/system/DexFile;"))
     {
         return;
     }
@@ -494,7 +489,29 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpoin
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcessMemoryMap(JNIEnv *env,
                                                                                         jobject this)
 {
-    dump_process_memory_map();
+    //dump_process_memory_map();
+
+
+    char* looking_for = "/data/dalvik-cache/arm/system@framework@boot.oat";
+
+    struct MemorySegment segments[100];
+    uint32_t found = findFileSegmentsInMemory(segments, 100, looking_for);
+    if(found == 0)
+    {
+        LOGD("Unable to find oat file %s", looking_for);
+        return;
+    }
+
+    LOGD("Found the following segments for the oat file \"%s\":", looking_for);
+    for (uint32_t i = 0; i < found; i++)
+    {
+        struct MemorySegment* curr = &segments[i];
+        LOGD(PRINT_PTR"-"PRINT_PTR", %c%c%c%c", curr->start, curr->end,
+             curr->flag_readable ? 'r' : '-',
+             curr->flag_writable ? 'w' : '-',
+             curr->flag_executable ? 'x' : '-',
+             curr->flag_shared ? 's' : 'p');
+    }
 }
 
 
@@ -514,6 +531,38 @@ Java_com_example_lukas_ndktest_MainActivity_dumpMainOatInternals(JNIEnv *env, jo
     hexdump_primitive((const void*)oat_start, 0x10, 0x10);
 
     log_elf_oat_file_info(oat_start, elf_end);
+}
+JNIEXPORT void JNICALL
+Java_com_example_lukas_ndktest_MainActivity_dumpSystemLoadLibraryState(JNIEnv *env, jobject instance)
+{
+    void* elf_start = (void*)0x706a8000;
+    void* oat_start = elf_start + 0x1000;
+
+    void* elf_end = (void*)0x7368d000;
+
+
+    struct OatFile oat;
+    struct OatDexFile oat_dex;
+    struct OatClass oat_class;
+    struct OatMethod oat_method;
+    if(!oat_Setup(&oat, oat_start, elf_end))
+    {
+        LOGF("Could not parse the oat file.");
+        return;
+    }
+    if(!oat_FindClass(&oat, &oat_dex, &oat_class, "Ljava/lang/System;"))
+    {
+        LOGF("Could not find class java.lang.System");
+        return;
+    }
+    if(!oat_FindDirectMethod(&oat_class, &oat_method, "loadLibrary", "(Ljava/lang/String;)V"))
+    {
+        LOGF("Could not find function loadLibrary");
+        return;
+    }
+    const struct DexHeader* dex_hdr = oat_dex.data.dex_file_pointer;
+    log_oat_dex_file_class_def_contents(oat_class.oat_class_data.backing_memory_address);
+    log_dex_file_class_def_contents(dex_hdr, GetIndexForClassDef(dex_hdr, oat_class.dex_class.class_def));
 }
 
 
