@@ -129,6 +129,7 @@ static bool FindMethod(const struct DexClass* dex_class, struct DexMethod* resul
         result->containing_class = dex_class;
         result->method_id = method_id;
         result->class_method_idx = class_start_idx + i;
+        result->is_direct = direct;
 
         // Simply redecode by resetting the method_idx
         method_idx -= current.method_idx_diff;

@@ -70,6 +70,11 @@
     LOGF( "Check failed: %s", #x ); \
     return (value); \
   }
+#define CHECK_RETURNVOID(x) \
+  if (UNLIKELY(!(x))) { \
+    LOGF( "Check failed: %s", #x ); \
+    return; \
+}
 #define CHECK_RETURNNULL(x) CHECK_RETURN((x), (NULL))
 #define CHECK_RETURNFALSE(x) CHECK_RETURN((x), (false))
 

@@ -13,6 +13,9 @@
 #include "art/modifiers.h"
 #include "util/memory.h"
 #include "memory_map_lookup.h"
+#include "util/list.h"
+#include "statistics.h"
+#include "hooking/invocation_hook.h"
 
 
 #ifdef __cplusplus
@@ -20,11 +23,192 @@ extern "C"
 {
 #endif
 
+static bool setupBootOat(struct OatFile *oat_file)
+{
+    /*
+     * void *elf_begin = (void *) 0x706a8000;
+     * void *elf_oat_begin = elf_begin + 0x1000; // The oat section usually starts in the next page
+     * void *elf_oat_end = (void *) 0x7368d000;
+     */
+
+    struct MemoryMapView * view = CreateMemoryMapView();
+    if(view == NULL)
+    {
+        return false;
+    }
+    struct MemoryMappedFile *boot_oat = findFileByPath(view, "/data/dalvik-cache/arm/system@framework@boot.oat");
+    if (boot_oat == NULL)
+    {
+        LOGD("Unable to find file \"/data/dalvik-cache/arm/system@framework@boot.oat\"");
+        DestroyMemoryMapView(view);
+        return false;
+    }
+    void *elf_start;
+    void *elf_oat_start;
+    void *elf_oat_end;
+    if (!extractElfOatPointersFromFile(boot_oat, &elf_start, &elf_oat_start, &elf_oat_end))
+    {
+        LOGD("boot.oat doesn't appear to be an Oat file ... ???");
+        DestroyMemoryMapView(view);
+        return false;
+    }
+    DestroyMemoryMapView(view);
+    return oat_Setup(oat_file, elf_oat_start, elf_oat_end);
+}
+
+static bool findFunction(struct OatFile* oat, struct OatDexFile* oat_dex, struct OatClass* class, struct OatMethod* method,
+                         char* dex_path, char* class_name, char* method_name, char* method_proto, bool direct) {
+
+    if (!oat_FindDexFile(oat, oat_dex, dex_path))
+    {
+        return false;
+    }
+    LOGD("Found OatDexFile %s", dex_path);
+
+    if (!oat_FindClassInDex(oat_dex, class, class_name))
+    {
+        return false;
+    }
+    LOGD("Found OatClass %s", class_name);
+
+    if (direct) {
+        if (!oat_FindDirectMethod(class, method, method_name, method_proto))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        if (!oat_FindVirtualMethod(class, method, method_name, method_proto))
+        {
+            return false;
+        }
+    }
+    LOGD("Found %s OatMethod %s [%s]", (direct) ? "direct" : "virtual", method_name, method_proto);
+    return true;
+}
+static void dumpMappedOatFileStatistics()
+{
+    struct MemoryMapView * view = CreateMemoryMapView();
+    if(view != NULL)
+    {
+        struct MemoryMappedFile* cur_file;
+        LOGD("Loaded oat files: ");
+        list_for_each_entry(cur_file, &view->list_files, view_list_files_entry)
+        {
+            if(FileIsElfOatFilePredicate(view, cur_file, NULL))
+            {
+                void* elf_start;
+                void* elf_oat_start;
+                void* elf_oat_end;
+                if(!extractElfOatPointersFromFile(cur_file, &elf_start, &elf_oat_start, &elf_oat_end))
+                {
+                    continue;
+                }
+                struct OatFile oat;
+                if(!oat_Setup(&oat, elf_oat_start, elf_oat_end))
+                {
+                    continue;
+                }
+                LOGD("Oat file compilation statistics for: %s", cur_file->path->path);
+                stats_logNumCompiledMethodsInOatFile(&oat);
+            }
+        }
+        DestroyMemoryMapView(view);
+    }
+}
+
+JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testtest(
+        JNIEnv *env, jobject instance, jstring a, jint b, jstring c, jstring d, jint e)
+{
+    LOGI("a: "PRINT_PTR, (uintptr_t)a);
+    LOGI("b: "PRINT_PTR, (uintptr_t)b);
+    LOGI("c: "PRINT_PTR, (uintptr_t)c);
+    LOGI("d: "PRINT_PTR, (uintptr_t)d);
+    LOGI("e: "PRINT_PTR, (uintptr_t)e);
+}
+
+static void loadLibrary_OnEntry(void *addr, ucontext_t *ctx, void *additionalArg)
+{
+    JavaVM* javaVM = additionalArg;
+
+    LOGI("Called loadLibrary.");
+
+    JNIEnv* env = NULL;
+    if((*javaVM)->GetEnv(javaVM, (void**)&env, JNI_VERSION_1_6) != JNI_OK)
+    {
+        return;
+    }
+    void* arg0 = (void*)GetArgument(ctx, 0);
+    void* arg1 = (void*)GetArgument(ctx, 1);
+    void* arg2 = (void*)GetArgument(ctx, 2);
+    void* arg3 = (void*)GetArgument(ctx, 3);
+    void* arg4 = (void*)GetArgument(ctx, 4);
+    void* arg5 = (void*)GetArgument(ctx, 5);
+    void* arg6 = (void*)GetArgument(ctx, 6);
+    void* arg7 = (void*)GetArgument(ctx, 7);
+    void* arg8 = (void*)GetArgument(ctx, 8);
+    jstring jstr = (jstring)GetArgument(ctx, ctx->uc_mcontext.arm_r5);
+    const char *nativeString = (*env)->GetStringUTFChars(env, jstr, 0);
+    LOGI("Trying to load library: %s", nativeString);
+    (*env)->ReleaseStringUTFChars(env, jstr, nativeString);
+}
+static void loadLibrary_OnExit(void *addr, ucontext_t *ctx, void *additionalArg)
+{
+    JavaVM* javaVM = additionalArg;
+    LOGI("Exiting loadLibrary.");
+    dumpMappedOatFileStatistics();
+}
+
+static bool hookSystemLoadLibrary(JavaVM* javaVM)
+{
+    struct OatFile boot_oat;
+    if(!setupBootOat(&boot_oat))
+    {
+        LOGE("Could not locate boot.oat file.");
+        return false;
+    }
+    struct OatDexFile oat_dex;
+    struct OatClass java_lang_System;
+    if(!oat_FindClass(&boot_oat, &oat_dex, &java_lang_System, "Ljava/lang/System;"))
+    {
+        LOGE("Could not find java.lang.System class.");
+        return false;
+    }
+    struct OatMethod loadLibrary;
+    if(!oat_FindMethod(&java_lang_System, &loadLibrary, "loadLibrary", "(Ljava/lang/String;)V"))
+    {
+        LOGE("Could not find method loadLibrary.");
+        return false;
+    }
+    if(!oat_HasQuickCompiledCode(&loadLibrary))
+    {
+        LOGE("Method loadLibrary is interpreted, not compiled.");
+        return false;
+    }
+    void* impl = oat_GetQuickCompiledEntryPoint(&loadLibrary);
+    if(InvocationHook_Install(impl, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
+                           loadLibrary_OnEntry, javaVM, loadLibrary_OnExit, javaVM) == NULL)
+    {
+        LOGE("Could not install loadLibrary invocation_hook");
+        return false;
+    }
+    LOGI("Successfully hooked java.lang.System.loadLibrary(String).");
+    return true;
+}
 jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
 {
-    LOGI("Loading library...");
-
+    LOGI("#####################################################################");
+    LOGI("Loading library ndktest ...");
+    LOGI("#####################################################################");
     init();
+
+    if(!hookSystemLoadLibrary(vm))
+    {
+        LOGE("Could not hook java.lang.System.loadLibrary(String).");
+    }
+
+    dumpMappedOatFileStatistics();
 
     return JNI_VERSION_1_6;
 }
@@ -177,46 +361,6 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingThreadEntryPoints(JNIEnv 
                       TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
     trappoint_Install(quick_ep->pInvokeSuperTrampolineWithAccessCheck,
                       TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
-}
-
-static bool setupBootOat(struct OatFile *oat_file)
-{
-    void *elf_begin = (void *) 0x706a8000;
-    void *elf_oat_begin = elf_begin + 0x1000; // The oat section usually starts in the next page
-    void *elf_oat_end = (void *) 0x7368d000;
-
-    LOGI("/data/dalvik-cache/arm/system@framework@boot.oat");
-    hexdump_primitive((const void *) elf_oat_begin, 0x10, 0x10);
-    hexdump_primitive((const void *) elf_oat_end, 0x10, 0x10);
-
-    return oat_Setup(oat_file, elf_oat_begin, elf_oat_end);
-}
-
-static bool findFunction(struct OatFile* oat, struct OatDexFile* oat_dex, struct OatClass* class, struct OatMethod* method,
-                         char* dex_path, char* class_name, char* method_name, char* method_proto, bool direct) {
-
-    if (!oat_FindDexFile(oat, oat_dex, dex_path)) {
-        return false;
-    }
-    LOGD("Found OatDexFile %s", dex_path);
-
-    if (!oat_FindClassInDex(oat_dex, class, class_name)) {
-        return false;
-    }
-    LOGD("Found OatClass %s", class_name);
-
-    if (direct) {
-        if (!oat_FindDirectMethod(class, method, method_name, method_proto)) {
-            return false;
-        }
-    }
-    else {
-        if (!oat_FindVirtualMethod(class, method, method_name, method_proto)) {
-            return false;
-        }
-    }
-    LOGD("Found %s OatMethod %s [%s]", (direct) ? "direct" : "virtual", method_name, method_proto);
-    return true;
 }
 
 JNIEXPORT void JNICALL
@@ -493,25 +637,19 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcessMe
 
 
     char* looking_for = "/data/dalvik-cache/arm/system@framework@boot.oat";
+    struct MemoryMapView * view = CreateMemoryMapView();
+    if(view == NULL)
+    {
+        return;
+    }
 
-    struct MemorySegment segments[100];
-    uint32_t found = findFileSegmentsInMemory(segments, 100, looking_for);
-    if(found == 0)
+    struct MemoryMappedFile * boot_oat = findFileByPath(view, looking_for);
+    if(boot_oat == NULL)
     {
         LOGD("Unable to find oat file %s", looking_for);
         return;
     }
-
-    LOGD("Found the following segments for the oat file \"%s\":", looking_for);
-    for (uint32_t i = 0; i < found; i++)
-    {
-        struct MemorySegment* curr = &segments[i];
-        LOGD(PRINT_PTR"-"PRINT_PTR", %c%c%c%c", curr->start, curr->end,
-             curr->flag_readable ? 'r' : '-',
-             curr->flag_writable ? 'w' : '-',
-             curr->flag_executable ? 'x' : '-',
-             curr->flag_shared ? 's' : 'p');
-    }
+    logFileContents(view, boot_oat);
 }
 
 

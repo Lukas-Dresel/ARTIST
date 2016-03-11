@@ -2,6 +2,7 @@
 #include "util.h"
 #include "exceptions.h"
 #include "../logging.h"
+#include "error.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -93,6 +94,7 @@ void *allocate_memory_chunk(size_t size)
     void *result = malloc(size);
     if (UNLIKELY(result == NULL))
     {
+        set_last_error("Allocation of memory failed.");
         LOGF("malloc of size %zd failed: %s", size, strerror(errno));
     }
     return result;

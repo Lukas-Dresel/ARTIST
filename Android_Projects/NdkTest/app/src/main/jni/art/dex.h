@@ -32,6 +32,8 @@ struct DexMethod
     const struct DexHeader *        dex_header;
     const struct DexClass *         containing_class;
     const struct MethodID *         method_id;
+
+                 bool               is_direct;
                  uint32_t           class_method_idx;
           struct DecodedMethod      decoded_method_data;
 };

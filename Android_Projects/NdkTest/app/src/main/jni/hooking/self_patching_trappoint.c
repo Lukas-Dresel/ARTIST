@@ -128,6 +128,8 @@ void* SelfPatchingTrappoint_Install(void *address, uint32_t trap_method,
             new_self->primary_trappoint = entry_trappoint;
             new_self->enabled = true;
             new_self->patch_at = patch_at;
+            new_self->trap_addr = address;
+            new_self->trap_method = trap_method;
             list_add(&new_self->installed_entry, &installed_self_patching_trappoints);
 
             // Succesful creation

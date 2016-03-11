@@ -1,7 +1,4 @@
 #include "elf.h"
-#include "util/memory.h"
-
-#include <linux/elf.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -9,7 +6,8 @@ extern "C" {
 
 bool IsValidElfFileHeader(void* p)
 {
-    struct Elf32_Ehdr* hdr = p;
+    Elf32_Ehdr* hdr = p;
+
     if(hdr->e_ident[EI_MAG0] != ELFMAG0 ||
        hdr->e_ident[EI_MAG1] != ELFMAG1 ||
        hdr->e_ident[EI_MAG2] != ELFMAG2 ||

@@ -184,7 +184,7 @@ bool        IsValidIndex16(uint16_t index);
 bool        IsValidIndex(uint32_t index);
 
 
-/* Dex File Comparators
+/* Dex MemoryMappedFile Comparators
  *
  * These are comparators for some of the structures found in dex files. They
  * compare them based on orderings inherent in dex file structures.
@@ -206,13 +206,13 @@ int CompareMethodIDsByDexOrdering(const struct DexHeader* hdr, const struct Meth
 
 
 /*
- * Dex File Utils
+ * Dex MemoryMappedFile Utils
  */
 
 void* DexOffsetToPointer(const struct DexHeader* hdr, uint32_t offset);
 
 
-/* Dex File Structure Getters
+/* Dex MemoryMappedFile Structure Getters
  * Eventhough we might modify them, we return them as const, to make it clear that that is not
  * the standard use case. This is especially relevant with changes to structures that are variable
  * size encoded, e.g. uleb128 encoded values in the class_data_item structure

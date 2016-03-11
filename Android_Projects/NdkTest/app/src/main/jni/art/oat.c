@@ -197,7 +197,8 @@ bool oat_FindDirectMethod(const struct OatClass *oat_class, struct OatMethod *re
 }
 
 bool oat_FindVirtualMethod(const struct OatClass *oat_class, struct OatMethod *result,
-                           const char *descriptor, const char *signature) {
+                           const char *descriptor, const char *signature)
+{
     CHECK_RETURNFALSE(oat_class != NULL);
     CHECK_RETURNFALSE(result != NULL);
     CHECK_RETURNFALSE(descriptor != NULL);
@@ -217,6 +218,19 @@ bool oat_FindVirtualMethod(const struct OatClass *oat_class, struct OatMethod *r
     result->oat_method_offsets = meth_off;
     result->oat_class = oat_class;
     return true;
+}
+bool oat_FindMethod(const struct OatClass* oat_class, struct OatMethod* result,
+                    const char* descriptor, const char* signature)
+{
+    if(oat_FindDirectMethod(oat_class, result, descriptor, signature))
+    {
+        return true;
+    }
+    if(oat_FindVirtualMethod(oat_class, result, descriptor, signature))
+    {
+        return true;
+    }
+    return false;
 }
 
 bool oat_HasQuickCompiledCode(const struct OatMethod *m) {

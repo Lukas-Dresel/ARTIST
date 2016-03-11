@@ -7,10 +7,17 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
+import com.example.lukas.ndktest.MappedMemoryRegion;
+import com.example.lukas.ndktest.MemoryAnalysis.MemoryAnalyzer;
+import com.example.lukas.ndktest.MemoryAnalysis.MemoryRegionParser;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
 
 import dalvik.system.BaseDexClassLoader;
+import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
 
 
@@ -30,6 +37,36 @@ public class MainActivity extends Activity {
 
         this.mOutput = (TextView) this.findViewById(R.id.output);
 
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader("/proc/self/maps"));
+            String line;
+            while ((line = reader.readLine()) != null)
+            {
+                Log.i(TAG, line);
+            }
+        }
+        catch (IOException ex)
+        {
+
+        }
+
+
+        String a = "NdkTest";
+        testtest(a, 10, a, a, 10);
+        System.loadLibrary(a);
+
+        /*try
+        {
+            for(MappedMemoryRegion mr : MemoryAnalyzer.getMemoryRegions())
+            {
+                Log.d(TAG, String.format("%x-%x: %s", mr.StartingAddress, mr.EndAddress, mr.Description));
+            }
+        }
+        catch(Throwable t)
+        {
+            Log.e(TAG, t.getMessage());
+        }
+
         this.dumpProcessMemoryMap();
 
         Class c = BaseDexClassLoader.class;
@@ -37,8 +74,6 @@ public class MainActivity extends Activity {
         Log.i(TAG, String.format("DexClassLoader: Canonical Name: %s", c.getCanonicalName()));
         Log.i(TAG, String.format("DexClassLoader: Name:           %s", c.getName()));
         Log.i(TAG, String.format("DexClassLoader: Package Name:   %s", c.getPackage().getName()));
-
-        this.getClassLoader()
 
 
         this.dumpProcessMemoryMap();
@@ -77,9 +112,6 @@ public class MainActivity extends Activity {
             Log.d(TAG, nometh.getMessage());
         }
 
-
-
-
         this.mOutput.setText(String.format("Bits of %d: %d", 10, Integer.bitCount(10)));
 
         String towelroot_path = "/storage/sdcard0/Download/tr.apk";
@@ -92,7 +124,7 @@ public class MainActivity extends Activity {
             }
         } catch (IOException ioex) {
             Log.wtf(TAG, ioex.getMessage());
-        }
+        }*/
 
         /*Log.d(TAG, "Overwriting java code.");
         this.tryNukeDexContent();
@@ -146,6 +178,7 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
+    private native void testtest(String a, int b, String c, String d, int e);
     private native void registerNativeHookForFindLibrary();
     private native void registerNativeHookForDexFileLoadClass();
 

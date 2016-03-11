@@ -56,6 +56,7 @@ bool    oat_GetClass(const struct OatDexFile* oat_dex_file, struct OatClass* cla
 
 bool    oat_FindDirectMethod(const struct OatClass * oat_class, struct OatMethod* result, const char* descriptor, const char* signature);
 bool    oat_FindVirtualMethod(const struct OatClass * oat_class, struct OatMethod* result, const char* descriptor, const char* signature);
+bool    oat_FindMethod(const struct OatClass* oat_class, struct OatMethod* result, const char* descriptor, const char* signature);
 
 bool    oat_HasQuickCompiledCode(const struct OatMethod* m);
 void*   oat_GetQuickCompiledEntryPoint(const struct OatMethod* m);

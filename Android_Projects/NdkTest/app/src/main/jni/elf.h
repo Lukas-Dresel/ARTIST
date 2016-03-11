@@ -1,12 +1,8 @@
 #ifndef _ELF_ANALYZER_H
 #define _ELF_ANALYZER_H
 
-#include <elf.h>
-#include <errno.h>
+#include <linux/elf.h>
 #include <stdbool.h>
-
-#include "logging.h"
-#include "memory.h"
 
 enum SegmentType
 {
@@ -26,6 +22,6 @@ enum SegmentType
     GCC_StackExecutability  = PT_GNU_STACK
 };
 
-bool IsValidElfFileHeader(void* p)
+bool IsValidElfFileHeader(void* p);
 
 #endif
