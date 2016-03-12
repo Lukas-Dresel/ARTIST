@@ -19,7 +19,7 @@
  */
 
 /* Modeled after
-*     https://android.googlesource.com/platform/art/+/android-6.0.0_r5/runtime/dex_file.cc
+ *     https://android.googlesource.com/platform/art/+/android-6.0.0_r5/runtime/dex_file.cc
  *     https://android.googlesource.com/platform/art/+/android-6.0.0_r5/runtime/dex_file.h
  *     https://android.googlesource.com/platform/art/+/android-6.0.0_r5/runtime/dex_file-inl.h
  * This file is heavily borrowed from the above sources.

@@ -4,10 +4,10 @@
 #include "mem_map.h"
 #include "../logging.h"
 #include "../system_info.h"
+#include "../util/util.h"
 
 #include <asm-generic/mman-common.h>
 #include <sys/mman.h>
-#include <inttypes.h>
 
 static bool mem_map_IsInUse(MemMap *self)
 {
