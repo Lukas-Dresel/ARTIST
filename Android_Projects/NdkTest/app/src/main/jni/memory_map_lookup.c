@@ -11,24 +11,7 @@
 #include "util/memory.h"
 #include "elf.h"
 #include "art/oat_internal.h"
-
-// djb2 by dan bernstein
-// Source: http://www.cse.yorku.ca/~oz/hash.html
-unsigned long StringHash(const char *string)
-{
-    CHECK_RETURNFALSE(string != NULL);
-
-    const unsigned char* str = (const unsigned char*)string;
-
-    unsigned long hash = 5381;
-    int c;
-    while((c = *str++) != 0)
-    {
-        /* hash * 33 + c */
-        hash = ((hash << 5) + hash) + c;
-    }
-    return hash;
-}
+#include "util/city.h"
 
 static size_t whitespaceFreeStringLength(const char* str)
 {
@@ -57,7 +40,7 @@ bool FilePathByPathStringPredicate(struct MemoryMapView * view, struct FilePath*
     CHECK_RETURNFALSE(fp != NULL);
     CHECK_RETURNFALSE(arg != NULL);
 
-    if(fp->path_hash != StringHash(arg))
+    if(fp->path_hash != CityHash64(arg, strlen(arg)))
     {
         return false;
     }
@@ -177,10 +160,9 @@ bool extractElfOatPointersFromFile(struct MemoryMappedFile *f, void **result_elf
     return false;
 }
 
-static struct FilePath* newFilePath(const char* path)
+static struct FilePath* newFilePath(const char* path, size_t path_len)
 {
-    unsigned long path_hash = StringHash(path);
-    size_t path_len = strlen(path);
+    uint64_t path_hash = CityHash64(path, path_len);
 
     // the struct + the following string + null byte
     struct FilePath* self = allocate_memory_chunk(sizeof(struct FilePath) + path_len + 1);
@@ -197,12 +179,12 @@ static struct FilePath* newFilePath(const char* path)
     return self;
 }
 
-static struct FilePath* addOrFindFilePath(struct MemoryMapView * view, const char* path)
+static struct FilePath* addOrFindFilePath(struct MemoryMapView * view, const char* path, size_t path_len)
 {
     CHECK_RETURNFALSE(view != NULL);
     CHECK_RETURNFALSE(path != NULL);
 
-    unsigned long path_hash = StringHash(path);
+    uint64_t path_hash = CityHash64(path, path_len);
 
     // find hash in path list
     struct FilePath* current_path;
@@ -213,7 +195,7 @@ static struct FilePath* addOrFindFilePath(struct MemoryMapView * view, const cha
             return current_path;
         }
     }
-    struct FilePath* new_path = newFilePath(path);
+    struct FilePath* new_path = newFilePath(path, path_len);
     if(new_path == NULL)
     {
         return NULL;
@@ -330,7 +312,7 @@ static struct MemorySegment* newSegment(uint32_t start, uint32_t end, char* perm
     INIT_LIST_HEAD(&self->view_list_segments_entry);
     return self;
 }
-static bool insertNewSegment(struct MemoryMapView *view, const char *line)
+static bool insertNewSegment(struct MemoryMapView *view, const char *line, size_t line_len)
 {
     CHECK_RETURNFALSE(view != NULL);
     CHECK_RETURNFALSE(line != NULL);
@@ -352,8 +334,9 @@ static bool insertNewSegment(struct MemoryMapView *view, const char *line)
         return false;
     }
     const char *path = &line[path_start];
+    uint32_t path_len = line_len - path_start;
 
-    struct FilePath *file_path_element = addOrFindFilePath(view, path);
+    struct FilePath *file_path_element = addOrFindFilePath(view, path, path_len);
     if (file_path_element == NULL)
     {
         return false;
@@ -402,8 +385,9 @@ static bool populateMemoryMappedFileView(struct MemoryMapView * self)
 
     while (fgets(buff, sizeof(buff), fp) != NULL)
     {
-        buff[whitespaceFreeStringLength(buff)] = 0; // clear trailing whitespace
-        if(!insertNewSegment(self, buff))
+        uint32_t len = whitespaceFreeStringLength(buff);
+        buff[len] = 0; // clear trailing whitespace
+        if(!insertNewSegment(self, buff, len))
         {
             return false;
         }
@@ -487,8 +471,10 @@ struct MemoryMapView *CreateMemoryMapView()
 
 void logMemorySegmentContents(struct MemorySegment* seg)
 {
-    CHECK_RETURNVOID(seg != NULL);
-
+    if(seg == NULL)
+    {
+        return;
+    }
     LOGD(PRINT_PTR"-"PRINT_PTR", %c%c%c%c",
          (uintptr_t)seg->start, (uintptr_t)seg->end,
          seg->flag_readable ? 'r' : '-',
@@ -498,12 +484,18 @@ void logMemorySegmentContents(struct MemorySegment* seg)
 }
 void logMemoryRegionContents(struct MemoryRegion *r)
 {
-    CHECK_RETURNVOID(r != NULL);
+    if(r == NULL)
+    {
+        return;
+    }
     LOGD(PRINT_PTR"-"PRINT_PTR, (uintptr_t)r->start, (uintptr_t)r->end);
 }
-void logFileContents(struct MemoryMapView * view, struct MemoryMappedFile * f)
+void logFileContents(struct MemoryMappedFile * f)
 {
-    CHECK_RETURNVOID(view != NULL);
+    if(f == NULL)
+    {
+        return;
+    }
     CHECK_RETURNVOID(f != NULL);
 
     LOGD("Memory mapped file \"%s\":", f->path->path);

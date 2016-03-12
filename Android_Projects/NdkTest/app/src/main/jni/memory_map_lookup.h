@@ -29,7 +29,7 @@ struct FilePath
 {
     struct list_head view_list_filepaths_entry;
 
-    unsigned long path_hash;
+    uint64_t path_hash;
     char path[0];
 };
 struct MemoryRegion
@@ -65,11 +65,6 @@ typedef bool (*FILE_PREDICATE)(struct MemoryMapView *, struct MemoryMappedFile *
 typedef bool (*FILEPATH_PREDICATE)(struct MemoryMapView *, struct FilePath*, void* arg);
 typedef bool (*SEGMENT_PREDICATE)(struct MemoryMapView *, struct MemorySegment*, void* arg);
 
-
-// djb2 by dan bernstein
-// Source: http://www.cse.yorku.ca/~oz/hash.html
-unsigned long StringHash(const char *string);
-
 bool FilePathByPathStringPredicate(struct MemoryMapView * view, struct FilePath* fp, const char* arg);
 bool FileByPathStringPredicate(struct MemoryMapView * view, struct MemoryMappedFile * f, const char* arg);
 bool FileByFilePathPredicate(struct MemoryMapView * view, struct MemoryMappedFile * f, const struct FilePath* fp);
@@ -89,7 +84,7 @@ void                    DestroyMemoryMapView(struct MemoryMapView *self);
 
 void logMemorySegmentContents(struct MemorySegment* seg);
 void logMemoryRegionContents(struct MemoryRegion *r);
-void logFileContents(struct MemoryMapView * view, struct MemoryMappedFile * f);
+void logFileContents(struct MemoryMappedFile * f);
 
 
 
