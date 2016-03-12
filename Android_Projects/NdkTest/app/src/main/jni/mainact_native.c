@@ -16,6 +16,8 @@
 #include "util/list.h"
 #include "statistics.h"
 #include "hooking/invocation_hook.h"
+#include "art/mirror_hacks.h"
+#include "art/android_utf.h"
 
 
 #ifdef __cplusplus
@@ -139,19 +141,12 @@ static void loadLibrary_OnEntry(void *addr, ucontext_t *ctx, void *additionalArg
     {
         return;
     }
-    void* arg0 = (void*)GetArgument(ctx, 0);
-    void* arg1 = (void*)GetArgument(ctx, 1);
-    void* arg2 = (void*)GetArgument(ctx, 2);
-    void* arg3 = (void*)GetArgument(ctx, 3);
-    void* arg4 = (void*)GetArgument(ctx, 4);
-    void* arg5 = (void*)GetArgument(ctx, 5);
-    void* arg6 = (void*)GetArgument(ctx, 6);
-    void* arg7 = (void*)GetArgument(ctx, 7);
-    void* arg8 = (void*)GetArgument(ctx, 8);
-    jstring jstr = (jstring)GetArgument(ctx, ctx->uc_mcontext.arm_r5);
-    const char *nativeString = (*env)->GetStringUTFChars(env, jstr, 0);
-    LOGI("Trying to load library: %s", nativeString);
-    (*env)->ReleaseStringUTFChars(env, jstr, nativeString);
+    unsigned char * arg0 = (void*)GetArgument(ctx, 0);
+    unsigned char * arg1 = (void*)GetArgument(ctx, 1);
+    struct MirrorHackString* loaded_library_name = (struct MirrorHackString*)arg1;
+    char utf8[loaded_library_name->str_len + 10];
+    ConvertUtf16ToModifiedUtf8(&utf8[0], loaded_library_name->str_content->chars, loaded_library_name->str_len);
+    LOGI("Tried to load library: %s", utf8);
 }
 static void loadLibrary_OnExit(void *addr, ucontext_t *ctx, void *additionalArg)
 {
@@ -649,7 +644,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_dumpProcessMe
         LOGD("Unable to find oat file %s", looking_for);
         return;
     }
-    logFileContents(view, boot_oat);
+    logFileContents(boot_oat);
 }
 
 
