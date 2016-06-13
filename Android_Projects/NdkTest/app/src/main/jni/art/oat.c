@@ -180,7 +180,10 @@ bool oat_FindDirectMethod(const struct OatClass *oat_class, struct OatMethod *re
     CHECK_RETURNFALSE(descriptor != NULL);
     CHECK_RETURNFALSE(signature != NULL);
 
-    if (!dex_FindDirectMethod(&oat_class->dex_class, &result->dex_method, descriptor, signature)) {
+    LOGD("Looking up direct oat method %s %s", descriptor, signature);
+    if (!dex_FindDirectMethod(&oat_class->dex_class, &result->dex_method, descriptor, signature))
+    {
+        LOGD("Could not find direct oat method %s %s", descriptor, signature);
         return false;
     }
     /*
@@ -189,6 +192,8 @@ bool oat_FindDirectMethod(const struct OatClass *oat_class, struct OatMethod *re
      * This can be NULL when the method was simply not AOT-compiled.
      * If this is the case the VM interprets the DEX bytecode instead.
      */
+
+    LOGD("Getting oat method offsets for %s %s", descriptor, signature);
     const struct OatMethodOffsets *meth_off = GetOatMethodOffsets(&oat_class->oat_class_data,
                                                                   result->dex_method.class_method_idx);
     result->oat_method_offsets = meth_off;
@@ -204,6 +209,7 @@ bool oat_FindVirtualMethod(const struct OatClass *oat_class, struct OatMethod *r
     CHECK_RETURNFALSE(descriptor != NULL);
     CHECK_RETURNFALSE(signature != NULL);
 
+    LOGD("Looking up virtual oat method %s %s", descriptor, signature);
     if (!dex_FindVirtualMethod(&oat_class->dex_class, &result->dex_method, descriptor, signature)) {
         return false;
     }
@@ -213,6 +219,7 @@ bool oat_FindVirtualMethod(const struct OatClass *oat_class, struct OatMethod *r
      * This can be NULL when the method was simply not AOT-compiled.
      * If this is the case the VM interprets the DEX bytecode instead.
      */
+    LOGD("Getting oat method offsets for %s %s", descriptor, signature);
     const struct OatMethodOffsets *meth_off = GetOatMethodOffsets(&oat_class->oat_class_data,
                                                                   result->dex_method.class_method_idx);
     result->oat_method_offsets = meth_off;
@@ -222,14 +229,17 @@ bool oat_FindVirtualMethod(const struct OatClass *oat_class, struct OatMethod *r
 bool oat_FindMethod(const struct OatClass* oat_class, struct OatMethod* result,
                     const char* descriptor, const char* signature)
 {
+    LOGD("Looking up direct method %s %s", descriptor, signature);
     if(oat_FindDirectMethod(oat_class, result, descriptor, signature))
     {
         return true;
     }
+    LOGD("Looking up virtual method %s %s", descriptor, signature);
     if(oat_FindVirtualMethod(oat_class, result, descriptor, signature))
     {
         return true;
     }
+    LOGD("Could not find method %s %s", descriptor, signature);
     return false;
 }
 

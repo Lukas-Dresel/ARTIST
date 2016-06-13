@@ -19,9 +19,9 @@ struct ArtMethodContext
     struct ArtClassContext  clazz;
     struct OatMethod        oat_method;
 };
-bool android_FindLoadedClass(struct ArtClassContext* result, char* class_name);
-bool android_FindLoadedMethod(struct ArtMethodContext* result, char* class_name,
-                                                    char* method_name, char* method_proto);
+bool android_FindLoadedClass(struct ArtClassContext* result, const char* class_name);
+bool android_FindLoadedMethod(struct ArtMethodContext* result, const char* class_name,
+                                                    const char* method_name, const char* method_proto);
 
 
 

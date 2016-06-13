@@ -113,12 +113,18 @@ bool IsValidIndex(uint32_t index)
 int CompareTypeIDsByDexOrdering(const struct DexHeader *hdr, const struct TypeID *a,
                                 const struct TypeID *b)
 {
+    CHECK(hdr != NULL);
+    CHECK(a != NULL);
+    CHECK(b != NULL);
     return a->descriptor_idx_ - b->descriptor_idx_;
 }
 
 int CompareStringIDsByDexOrdering(const struct DexHeader *hdr, const struct StringID *a,
                                   const struct StringID *b)
 {
+    CHECK(hdr != NULL);
+    CHECK(a != NULL);
+    CHECK(b != NULL);
     const char *str_a = GetStringData(hdr, a);
     const char *str_b = GetStringData(hdr, b);
     return CompareModifiedUtf8ToModifiedUtf8AsUtf16CodePointValues(str_a, str_b);
@@ -127,8 +133,14 @@ int CompareStringIDsByDexOrdering(const struct DexHeader *hdr, const struct Stri
 int CompareProtoIDsByDexOrdering(const struct DexHeader *hdr, const struct ProtoID *a,
                                  const struct ProtoID *b)
 {
-    const struct TypeList *params_a = GetProtoParameters(hdr, a);
-    const struct TypeList *params_b = GetProtoParameters(hdr, b);
+    CHECK(hdr != NULL);
+    CHECK(a != NULL);
+    CHECK(b != NULL);
+
+    const struct TypeList no_params = {.size_ = 0};
+
+    const struct TypeList *params_a = (a->parameters_off_ == 0) ? &no_params : GetProtoParameters(hdr, a);
+    const struct TypeList *params_b = (b->parameters_off_ == 0) ? &no_params : GetProtoParameters(hdr, b);
     if (params_a->size_ < params_b->size_)
     {
         return -1;
@@ -151,6 +163,10 @@ int CompareProtoIDsByDexOrdering(const struct DexHeader *hdr, const struct Proto
 
 int CompareFieldIDsByDexOrdering(const struct DexHeader *hdr, const struct FieldID* a, const struct FieldID* b)
 {
+    CHECK(hdr != NULL);
+    CHECK(a != NULL);
+    CHECK(b != NULL);
+
     int class_idx_diff = a->class_idx_ - b->class_idx_;
     int name_idx_diff = a->name_idx_ - b->name_idx_;
     int type_idx_diff = a->type_idx_ - b->type_idx_;
@@ -176,6 +192,9 @@ int CompareFieldIDsByDexOrdering(const struct DexHeader *hdr, const struct Field
 int CompareMethodIDsByDexOrdering(const struct DexHeader *hdr, const struct MethodID *a,
                                   const struct MethodID *b)
 {
+    CHECK(hdr != NULL);
+    CHECK(a != NULL);
+    CHECK(b != NULL);
     int class_idx_diff = a->class_idx_ - b->class_idx_;
     int name_idx_diff = a->name_idx_ - b->name_idx_;
     int proto_idx_diff = a->proto_idx_ - b->proto_idx_;
@@ -264,6 +283,7 @@ const char* GetTypeIDName(const struct DexHeader* hdr, const struct TypeID* type
 }
 const char* GetTypeIDNameByIdx(const struct DexHeader* hdr, uint16_t type_idx)
 {
+    // Sanity checks done by GetTypeID
     const struct TypeID* type_id = GetTypeID(hdr, type_idx);
     return GetTypeIDName(hdr, type_id);
 }
@@ -319,7 +339,7 @@ const struct ProtoID *GetProtoID(const struct DexHeader *hdr, uint16_t proto_id_
     {
         return NULL;
     }
-    CHECK(proto_id_index < hdr->proto_ids_size_);
+    CHECK_RETURNNULL(proto_id_index < hdr->proto_ids_size_);
     const struct ProtoID *ids = GetProtoIDArray(hdr);
     return &ids[proto_id_index];
 }
@@ -343,6 +363,7 @@ uint16_t GetIndexForProtoID(const struct DexHeader *hdr, const struct ProtoID *p
 // Returns the short form method descriptor for the given prototype.
 const char* GetProtoShortyByIndex(const struct DexHeader* hdr, uint16_t proto_idx)
 {
+    // Sanity checks done by GetProtoID
     const struct ProtoID* proto_id = GetProtoID(hdr, proto_idx);
     return GetStringDataByIdx(hdr, proto_id->shorty_idx_);
 }
@@ -351,6 +372,7 @@ const struct TypeList* GetProtoParameters(const struct DexHeader* hdr, const str
 {
     CHECK_RETURNNULL(hdr != NULL);
     CHECK_RETURNNULL(proto_id != NULL);
+
     return (const struct TypeList*)DexOffsetToPointer(hdr, proto_id->parameters_off_);
 }
 
@@ -516,7 +538,9 @@ const char *GetStringDataAndUtf16Length(const struct DexHeader *hdr,
                                                const struct StringID *string_id,
                                                uint32_t *utf16_length)
 {
-    CHECK(utf16_length != NULL);
+    CHECK_RETURNNULL(hdr != NULL);
+    CHECK_RETURNNULL(string_id != NULL);
+    CHECK_RETURNNULL(utf16_length != NULL);
     const uint8_t *ptr = (void *) hdr + string_id->string_data_off_;
     *utf16_length = DecodeUnsignedLeb128(&ptr);
     return (const char *) (ptr);
@@ -541,6 +565,8 @@ const char *GetStringDataAndUtf16LengthByIdx(const struct DexHeader *hdr, uint32
 
 const char *GetStringDataByIdx(const struct DexHeader *hdr, uint32_t idx)
 {
+    CHECK_RETURNNULL(hdr != NULL);
+
     uint32_t unicode_length;
     return GetStringDataAndUtf16LengthByIdx(hdr, idx, &unicode_length);
 }
@@ -636,6 +662,11 @@ const struct TypeID *FindTypeIDByStringIndex(const struct DexHeader *hdr, uint32
 
 static int CompareProtoParams(uint32_t sig_type_length, const uint16_t *signature_type_idxs,const struct TypeList* proto_params)
 {
+    // Sanity checks
+    CHECK(signature_type_idxs != NULL);
+    CHECK(proto_params != NULL);
+
+    LOGD("Comparing proto params of length %d", sig_type_length);
     int compare = 0;
     for (int i = 0; (compare == 0) && (i < proto_params->size_) && (i < sig_type_length); i++)
     {
@@ -665,13 +696,32 @@ const struct ProtoID *FindProtoID(const struct DexHeader *hdr, uint16_t ret_type
     CHECK_RETURNNULL(hdr != NULL);
     // If we are given a nonzero-length we need the array pointer to not be null.
     CHECK_RETURNNULL(sig_type_length == 0 || signature_type_idxs != NULL);
+
+    LOGD("Looking up proto id with return_type_idx %d", ret_type_idx);
+
+
+    struct TypeList no_params = { .size_ = 0 };
+
     int32_t lo = 0;
     int32_t hi = hdr->proto_ids_size_ - 1;
     while (hi >= lo)
     {
         int32_t mid = (hi + lo) / 2;
         const struct ProtoID *proto_id = GetProtoID(hdr, mid);
+        CHECK(proto_id != NULL);
+
+
         const struct TypeList *proto_params = GetProtoParameters(hdr, proto_id);
+        if(proto_params == NULL)
+        {
+            if(proto_id->parameters_off_ != 0)
+            {
+                LOGE("Could not get prototype parameters for prototype #%d", mid);
+                return NULL;
+            }
+            // If we simply have no parameters we use an empty list
+            proto_params = &no_params;
+        }
         int compare = ret_type_idx - proto_id->return_type_idx_;
         if (compare == 0)
         {
@@ -686,6 +736,7 @@ const struct ProtoID *FindProtoID(const struct DexHeader *hdr, uint16_t ret_type
             }
             else
             {
+                LOGD("Found prototype.");
                 return proto_id;
             }
         }
@@ -698,6 +749,7 @@ const struct ProtoID *FindProtoID(const struct DexHeader *hdr, uint16_t ret_type
             hi = mid - 1;
         }
     }
+    LOGD("Did not find prototype.");
     return NULL;
 }
 
@@ -888,13 +940,23 @@ const struct MethodID *FindMethodID(const struct DexHeader *hdr,
 }
 
 bool CreateTypeListFromStringSignature( const struct DexHeader *hdr,
-                                        const struct String *mutf8_signature,
+                                        const char *mutf8_signature,
                                         uint16_t *return_type_idx,
                                         uint16_t *param_type_idxs,
                                         uint32_t max_num_writable_parameters,
                                         uint32_t *num_written_parameters )
 {
-    if (mutf8_signature->content[0] != '(')
+    CHECK_RETURNFALSE(hdr != NULL);
+
+    CHECK_RETURNFALSE(mutf8_signature != NULL);
+    size_t sig_length = strlen(mutf8_signature);
+
+    CHECK_RETURNFALSE(return_type_idx != NULL);
+    CHECK_RETURNFALSE(param_type_idxs != NULL);
+    CHECK_RETURNFALSE(num_written_parameters != NULL);
+    LOGD("Creating type list from signature %s", mutf8_signature);
+
+    if (mutf8_signature[0] != '(')
     {
         return false;
     }
@@ -902,12 +964,12 @@ bool CreateTypeListFromStringSignature( const struct DexHeader *hdr,
     *num_written_parameters = 0;
 
     size_t offset = 1;
-    size_t end = mutf8_signature->length;
+    size_t end = sig_length;
     bool process_return = false;
     while (offset < end)
     {
         size_t start_offset = offset;
-        char c = mutf8_signature->content[offset];
+        char c = mutf8_signature[offset];
         offset++;
         if (c == ')')
         {
@@ -920,7 +982,7 @@ bool CreateTypeListFromStringSignature( const struct DexHeader *hdr,
             {  // expect some descriptor following [
                 return false;
             }
-            c = mutf8_signature->content[offset];
+            c = mutf8_signature[offset];
             offset++;
         }
         if (c == 'L')
@@ -931,13 +993,13 @@ bool CreateTypeListFromStringSignature( const struct DexHeader *hdr,
                 {  // unexpected early termination of descriptor
                     return false;
                 }
-                c = mutf8_signature->content[offset];
+                c = mutf8_signature[offset];
                 offset++;
             } while (c != ';');
         }
 
         char descriptor[offset - start_offset + 1];
-        strncpy(descriptor, mutf8_signature->content + start_offset, offset - start_offset);
+        strncpy(descriptor, mutf8_signature + start_offset, offset - start_offset);
         descriptor[offset - start_offset] = 0;
         const struct StringID *string_id = FindStringIDByModifiedUTF8StringValue(hdr, descriptor);
         if (string_id == NULL)
@@ -977,22 +1039,24 @@ const struct ProtoID *FindProtoIDBySignatureString(const struct DexHeader *hdr,
 {
     CHECK_RETURNNULL(hdr != NULL);
     CHECK_RETURNNULL(signature != NULL);
-
-    String sig = {.content = signature, .length = strlen(signature)};
+    size_t sig_length = strlen(signature);
     uint16_t return_type_index;
-    uint16_t param_type_indices[sig.length - 1];
+    uint16_t param_type_indices[sig_length + 10 - 1];
     uint32_t num_params;
 
     bool success = CreateTypeListFromStringSignature(hdr,
-                                                     &sig,
+                                                     signature,
                                                      &return_type_index,
                                                      &param_type_indices[0],
-                                                     sig.length,
+                                                     sig_length - 1,
                                                      &num_params);
     if (!success)
     {
+        LOGD("Could not create type list from prototype.");
         return false;
     }
+    LOGD("Created type list from prototype %s", signature);
+    LOGD("Number of found parameters: %d", num_params);
     const struct ProtoID *proto_id = FindProtoID(hdr, return_type_index, &param_type_indices[0],
                                                  num_params);
     // no need to check for null, as that is exactly what we want to return if it occurs.

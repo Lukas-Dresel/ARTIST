@@ -18,12 +18,17 @@
 #include "hooking/invocation_hook.h"
 #include "art/mirror_hacks.h"
 #include "art/android_utf.h"
-
+#include "art_resolution.h"
+#include "art/oat_version_dependent/VERSION045/thread.h"
+#include "art/oat_version_dependent/VERSION045/entrypoints/quick_entrypoints.h"
+#include "hooking/breakpoint.h"
+#include "thread_lookup.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
 
 static bool setupBootOat(struct OatFile *oat_file)
 {
@@ -191,26 +196,237 @@ static bool hookSystemLoadLibrary(JavaVM* javaVM)
     LOGI("Successfully hooked java.lang.System.loadLibrary(String).");
     return true;
 }
-jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
+static bool hookFunction(const char* class_name, const char* method_name, const char* proto,
+                         HOOKCALLBACK onEntry, void* onEntryArgs,
+                         HOOKCALLBACK onExit, void* onExitArgs)
 {
-    LOGI("#####################################################################");
-    LOGI("Loading library ndktest ...");
-    LOGI("#####################################################################");
-    init();
+    CHECK_RETURNFALSE(class_name != NULL);
+    CHECK_RETURNFALSE(method_name != NULL);
+    CHECK_RETURNFALSE(proto != NULL);
 
-    if(!hookSystemLoadLibrary(vm))
+
+    struct ArtMethodContext method;
+
+    LOGD("Looking up function %s", method_name);
+    if(!android_FindLoadedMethod(&method, class_name, method_name, proto))
+    {
+        LOGE("Could not find [%s] :: %s %s ", class_name, method_name, proto);
+        return false;
+    }
+
+
+
+    const struct DexHeader* dex = method.clazz.oat_dex.data.dex_file_pointer;
+    uint16_t class_def_index = GetIndexForClassDef(dex, method.clazz.oat_class.dex_class.class_def);
+
+    log_dex_file_class_def_contents(dex, class_def_index);
+    log_oat_dex_file_class_def_contents(method.clazz.oat_class.oat_class_data.backing_memory_address);
+
+    uint32_t ignored;
+    stats_logNumCompiledMethodsInOatClass(&method.clazz.oat_class, &ignored, &ignored);
+
+
+
+    LOGD("Checking for quick code.");
+    if(!oat_HasQuickCompiledCode(&method.oat_method))
+    {
+        LOGE("Method %s :: %s %s is interpreted, not compiled.", class_name, method_name, proto);
+        return false;
+    }
+    LOGD("Found Quick code, hooking next.");
+    void* impl = oat_GetQuickCompiledEntryPoint(&method.oat_method);
+    CHECK_RETURNFALSE(impl != NULL);
+
+    if(InvocationHook_Install(impl, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
+                              onEntry, onEntryArgs, onExit, onExitArgs) == NULL)
+    {
+        LOGE("Could not install invocation_hook for method %s :: %s %s", class_name, method_name, proto);
+        return false;
+    }
+    LOGI("Successfully hooked %s :: %s %s (String).", class_name, method_name, proto);
+    return true;
+}
+static bool breakOnFunction(const char* class_name, const char* method_name, const char* proto,
+                         HOOKCALLBACK onEntry, void* onEntryArgs)
+{
+    CHECK_RETURNFALSE(class_name != NULL);
+    CHECK_RETURNFALSE(method_name != NULL);
+    CHECK_RETURNFALSE(proto != NULL);
+
+
+    struct ArtMethodContext method;
+
+    LOGD("Looking up function %s", method_name);
+    if(!android_FindLoadedMethod(&method, class_name, method_name, proto))
+    {
+        LOGE("Could not find [%s] :: %s %s ", class_name, method_name, proto);
+        return false;
+    }
+
+
+
+    const struct DexHeader* dex = method.clazz.oat_dex.data.dex_file_pointer;
+    uint16_t class_def_index = GetIndexForClassDef(dex, method.clazz.oat_class.dex_class.class_def);
+
+    log_dex_file_class_def_contents(dex, class_def_index);
+    log_oat_dex_file_class_def_contents(method.clazz.oat_class.oat_class_data.backing_memory_address);
+
+    uint32_t ignored;
+    stats_logNumCompiledMethodsInOatClass(&method.clazz.oat_class, &ignored, &ignored);
+
+
+
+    LOGD("Checking for quick code.");
+    if(!oat_HasQuickCompiledCode(&method.oat_method))
+    {
+        LOGE("Method %s :: %s %s is interpreted, not compiled.", class_name, method_name, proto);
+        return false;
+    }
+    LOGD("Found Quick code, hooking next.");
+    void* impl = oat_GetQuickCompiledEntryPoint(&method.oat_method);
+    CHECK_RETURNFALSE(impl != NULL);
+
+    if(Breakpoint_Install(impl, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
+                              onEntry, onEntryArgs) == NULL)
+    {
+        LOGE("Could not install breakpoint for method %s :: %s %s", class_name, method_name, proto);
+        return false;
+    }
+    LOGI("Successfully breaking on %s :: %s %s (String).", class_name, method_name, proto);
+    return true;
+}
+void default_OnEntry(void *addr, ucontext_t *ctx, char* func_name)
+{
+}
+void default_OnExit(void *addr, ucontext_t *ctx, char* func_name)
+{
+
+}
+struct SuspendMonitor
+{
+    void* pTestSuspendAddress;
+    void* hook;
+    uint32_t calls;
+};
+static void monitorTestSuspend_OnEntry(void* addr, ucontext_t* ctx, void* arg)
+{
+    struct SuspendMonitor* monitor = arg;
+    monitor->calls++;
+    return;
+}
+static void monitorTestSuspend_OnExit(void* addr, ucontext_t* ctx, void* arg)
+{
+    return;
+}
+static installTestSuspendMonitor_OnEntry(void* addr, ucontext_t* ctx, void* arg)
+{
+    struct SuspendMonitor* monitor = arg;
+    monitor->hook = InvocationHook_Install(monitor->pTestSuspendAddress, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
+                                           monitorTestSuspend_OnEntry, arg,
+                                           monitorTestSuspend_OnExit, arg);
+    monitor->calls = 0;
+    if(monitor->hook == NULL)
+    {
+        LOGE("Could not install pTestSuspend monitoring hook.");
+    }
+}
+static installTestSuspendMonitor_OnExit(void* addr, ucontext_t* ctx, void* arg)
+{
+    struct SuspendMonitor* monitor = arg;
+    if(monitor->hook != NULL)
+    {
+        InvocationHook_Uninstall(monitor->hook);
+        monitor->hook = NULL;
+    }
+    LOGI("pTestSuspend was called %d times.", monitor->calls);
+}
+static void monitorTestSuspendInFunction(JNIEnv* env, const char* class_name, const char* method_name,
+                                         const char* method_proto)
+{
+    struct Thread* thread = GetCurrentThreadObjectPointer(env);
+    if(thread == NULL)
+    {
+        LOGE("Could not find current thread structure.");
+        return;
+    }
+    struct QuickEntryPoints* quick_ep = &thread->tlsPtr_.quick_entrypoints;
+    void (*suspendCheck)() = quick_ep->pTestSuspend;
+
+    struct SuspendMonitor* monitor = allocate_memory_chunk(sizeof(struct SuspendMonitor));
+    if(monitor == NULL)
+    {
+        LOGE("Could not allocate memory.");
+        return;
+    }
+    hookFunction(class_name, method_name, method_proto, installTestSuspendMonitor_OnEntry, monitor,
+                     installTestSuspendMonitor_OnExit, monitor);
+}
+
+static void doPTestSuspendHook(JNIEnv* env)
+{
+    struct Thread* thread = GetCurrentThreadObjectPointer(env);
+    if(thread == NULL)
+    {
+        LOGE("Could not find current thread structure.");
+        return;
+    }
+    struct QuickEntryPoints* quick_ep = &thread->tlsPtr_.quick_entrypoints;
+    void (*suspendCheck)() = quick_ep->pTestSuspend;
+
+    if(!InvocationHook_Install(suspendCheck, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL,
+                               (HOOKCALLBACK)default_OnEntry, "pTestSuspend",
+                               (HOOKCALLBACK)default_OnExit, "pTestSuspend"))
+    {
+        LOGE("Could not hook pTestSuspend.");
+    }
+    else
+    {
+        LOGI("Successfully hooked pTestSupend.");
+    }
+}
+
+void evaluation_applicability(JavaVM* vm)
+{
+    if (!hookSystemLoadLibrary(vm))
     {
         LOGE("Could not hook java.lang.System.loadLibrary(String).");
     }
-
     dumpMappedOatFileStatistics();
+}
+void evaluation_performance(JavaVM* vm)
+{
+    if (!breakOnFunction("Lcom/android/cm3/MethodAtom;", "execute", "()I",
+                         (HOOKCALLBACK) default_OnEntry, "com.android.cm3.MethodAtom.execute"))
+    {
+        LOGE("Could not break on com.android.cm3.MethodAtom.execute.");
+    }
+}
+jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
+{
+
+    LOGW("#####################################################################");
+    LOGW("Loading library ndktest ...");
+    LOGW("#####################################################################");
+    init();
+
+    evaluation_performance(vm);
+    //evaluation_applicability(vm);
+
+    JNIEnv* env = NULL;
+    if((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) == JNI_OK)
+    {
+        LOGD("Found thread object at"PRINT_PTR, (uintptr_t)GetCurrentThreadObjectPointer(env));
+    }
 
     return JNI_VERSION_1_6;
 }
 
 void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
 {
-    LOGI("Unloading library.");
+    LOGI("#####################################################################");
+    LOGI("Unloading library ndktest ...");
+    LOGI("#####################################################################");
+    dumpMappedOatFileStatistics();
     destroy();
 }
 
@@ -320,42 +536,36 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAO
     }
 }
 
-void handler_suspend(void *trap_addr, ucontext_t *context, void *args)
-{
-    LOGD("Handling at "PRINT_PTR, (uintptr_t)trap_addr);
-}
-void* GetCurrentThreadObjectPointer()
-{
-    void* table;
-    asm("mov %0, r9" : "=r" (table));
-    return table;
-}
 JNIEXPORT void JNICALL
 Java_com_example_lukas_ndktest_MainActivity_dumpQuickEntryPointsInfo(JNIEnv *env, jobject instance)
 {
-    void *current_thread_pointer = GetCurrentThreadObjectPointer();
+    void *current_thread_pointer = GetCurrentThreadObjectPointer(env);
     LOGD("The current_thread_pointer lies at "PRINT_PTR, (uintptr_t) current_thread_pointer);
+}
+void handler_suspend(void *trap_addr, ucontext_t *context, void *args)
+{
+    LOGD("Handling %s at "PRINT_PTR, (char*)args, (uintptr_t)trap_addr);
 }
 JNIEXPORT void JNICALL
 Java_com_example_lukas_ndktest_MainActivity_testHookingThreadEntryPoints(JNIEnv *env, jobject instance)
 {
-    #include "art/oat_version_dependent/VERSION045/thread.h"
-    #include "art/oat_version_dependent/VERSION045/entrypoints/quick_entrypoints.h"
-    void *current_thread_pointer = GetCurrentThreadObjectPointer();
+    doPTestSuspendHook(env);
+
+    void *current_thread_pointer = GetCurrentThreadObjectPointer(env);
     LOGD("The current_thread_pointer lies at "PRINT_PTR, (uintptr_t) current_thread_pointer);
     struct Thread* thread = (struct Thread*)current_thread_pointer;
 
     struct QuickEntryPoints* quick_ep = &thread->tlsPtr_.quick_entrypoints;
     trappoint_Install(quick_ep->pTestSuspend, TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL,
-                      handler_suspend, NULL);
+                      handler_suspend, "pTestSuspend");
     trappoint_Install(quick_ep->pInvokeDirectTrampolineWithAccessCheck,
-                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, "pInvokeDirectTrampolineWithAccessCheck");
     trappoint_Install(quick_ep->pInvokeVirtualTrampolineWithAccessCheck,
-                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, "pInvokeVirtualTrampolineWithAccessCheck");
     trappoint_Install(quick_ep->pInvokeStaticTrampolineWithAccessCheck,
-                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, "pInvokeStaticTrampolineWithAccessCheck");
     trappoint_Install(quick_ep->pInvokeSuperTrampolineWithAccessCheck,
-                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, NULL);
+                      TRAP_METHOD_INSTR_KNOWN_ILLEGAL | TRAP_METHOD_SIG_ILL, handler_suspend, "pInvokeSuperTrampolineWithAccessCheck");
 }
 
 JNIEXPORT void JNICALL

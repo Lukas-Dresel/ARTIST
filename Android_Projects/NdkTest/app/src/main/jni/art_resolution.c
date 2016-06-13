@@ -4,6 +4,8 @@
 
 #include "art_resolution.h"
 #include "memory_map_lookup.h"
+#include "logging.h"
+#include "art/oat_dump.h"
 
 /*
  *
@@ -16,7 +18,7 @@
  * If the function succeeds
  *
  */
-bool android_FindLoadedClass(struct ArtClassContext* result, char* class_name)
+bool android_FindLoadedClass(struct ArtClassContext* result, const char* class_name)
 {
     struct MemoryMapView* mem_map = CreateMemoryMapView();
     if(mem_map == NULL)
@@ -38,6 +40,9 @@ bool android_FindLoadedClass(struct ArtClassContext* result, char* class_name)
         {
             continue;
         }
+
+        LOGD("Found oat file: ELF: "PRINT_PTR", OAT: "PRINT_PTR", END: "PRINT_PTR,
+             (uintptr_t)elf_start, (uintptr_t)elf_oat_start, (uintptr_t)elf_oat_end);
         for(uint32_t i = 0; i < NumDexFiles(result->oat_file.header); i++)
         {
             if(!oat_GetOatDexFile(&result->oat_file, &result->oat_dex, i))
@@ -56,20 +61,27 @@ bool android_FindLoadedClass(struct ArtClassContext* result, char* class_name)
     DestroyMemoryMapView(mem_map);
     return false;
 }
-bool android_FindLoadedMethod(struct ArtMethodContext* result, char* class_name, char* method_name, char* method_proto)
+bool android_FindLoadedMethod(struct ArtMethodContext* result, const char* class_name, const char* method_name, const char* method_proto)
 {
     if(!android_FindLoadedClass(&result->clazz, class_name))
     {
         return false;
     }
+    LOGI("Found class %s", class_name);
+    const struct DexHeader* hdr = result->clazz.oat_dex.data.dex_file_pointer;
+    uint16_t class_def_index = GetIndexForClassDef(hdr, result->clazz.oat_class.dex_class.class_def);
+    log_dex_file_class_def_contents(hdr, class_def_index);
     if(oat_FindDirectMethod(&result->clazz.oat_class, &result->oat_method, method_name, method_proto))
     {
+        LOGI("Found direct method %s", method_name);
         return true;
     }
     if(oat_FindVirtualMethod(&result->clazz.oat_class, &result->oat_method, method_name, method_proto))
     {
+        LOGI("Found virtual method %s", method_name);
         return true;
     }
+    LOGI("Could not find method %s", method_name);
     // Neither direct, nor virtual => not found
     return false;
 }

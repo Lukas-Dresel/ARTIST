@@ -120,7 +120,7 @@ struct TypeItem
 struct TypeList
 {
     uint32_t        size_;
-    struct TypeItem list_[1];
+    struct TypeItem list_[0];
 };
 // Raw code_item.
 struct CodeItem
@@ -269,12 +269,12 @@ const struct StringID *         FindStringIDByUTF16Value(const struct DexHeader 
 
 const struct TypeID *           FindTypeIDByStringIndex(const struct DexHeader *hdr, uint32_t string_index);
 
-bool                            CreateTypeListFromStringSignature(const struct DexHeader *hdr,
-                                                                  const struct String *mutf8_signature,
-                                                                  uint16_t *return_type_idx, uint16_t *
-                                                                  param_type_idxs,
-                                                                  uint32_t max_num_writable_parameters,
-                                                                  uint32_t *num_written_parameters);
+bool                            CreateTypeListFromStringSignature( const struct DexHeader *hdr,
+                                        const char *mutf8_signature,
+                                        uint16_t *return_type_idx,
+                                        uint16_t *param_type_idxs,
+                                        uint32_t max_num_writable_parameters,
+                                        uint32_t *num_written_parameters );
 
 const struct ProtoID*           FindProtoIDBySignatureString(const struct DexHeader* hdr, const char* signature);
 

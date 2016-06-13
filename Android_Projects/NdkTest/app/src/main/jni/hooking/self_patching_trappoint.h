@@ -5,9 +5,12 @@
 #ifndef NDKTEST_SELF_PATCHING_TRAPPOINT_H
 #define NDKTEST_SELF_PATCHING_TRAPPOINT_H
 
+#include "../hooking/hooking_common.h"
+
 // This is primarily designed to be an internal interface to provide a more general
 // breakpoint interface. While accessible for outside use, there is no focus on ease-of-use.
 // If that is desired write your own bridge for the functionality you are looking for.
+// For reference look at breakpoint.[ch] and invocation_hook.[ch]
 
 // This is intentionally chosen to fit the signature of the abi_interface.h functions ;)
 typedef void* (*PATCH_ADDRESS_EXTRACTOR)(ucontext_t *ctx);

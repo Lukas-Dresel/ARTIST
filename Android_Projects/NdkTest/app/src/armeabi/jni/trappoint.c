@@ -35,7 +35,7 @@ static void install_signal_handler(int signal, void *handler, struct sigaction *
     action.sa_flags = SA_SIGINFO | SA_RESTART;
 
     if (sigaction(signal, &action, old_action) != 0) {
-        LOGD("Error installing signal handler for signal #%d: %s", signal, strerror(errno));
+        LOGE("Error installing signal handler for signal #%d: %s", signal, strerror(errno));
     }
 }
 void init_trappoints() {

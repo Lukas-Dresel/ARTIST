@@ -588,7 +588,7 @@ const struct OatMethodOffsets* GetOatMethodOffsets(const struct OatClassData* cl
     if(clazz->bitmap_pointer == NULL)
     {
         CHECK_EQ(kOatClassAllCompiled, clazz->class_type);
-        return NULL;
+        methods_pointer_idx = class_method_index;
     }
     else
     {

@@ -28,13 +28,13 @@ uint32_t dex_NumberOfClassDefs  ( const struct DexHeader* hdr )
     return hdr->class_defs_size_;
 }
 
-bool dex_FindClass(const struct DexHeader *hdr, struct DexClass *result, char *descriptor)
+bool dex_FindClass(const struct DexHeader *hdr, struct DexClass *result, char *mutf8_descriptor)
 {
     CHECK_RETURNFALSE(hdr != NULL);
     CHECK_RETURNFALSE(result != NULL);
-    CHECK_RETURNFALSE(descriptor != NULL);
+    CHECK_RETURNFALSE(mutf8_descriptor != NULL);
 
-    const struct ClassDef *found_class = FindClassDefByDescriptor(hdr, descriptor);
+    const struct ClassDef *found_class = FindClassDefByDescriptor(hdr, mutf8_descriptor);
     if (found_class == NULL)
     {
         return false;
@@ -76,23 +76,33 @@ static bool FindMethod(const struct DexClass* dex_class, struct DexMethod* resul
     CHECK_RETURNFALSE(dex_class != NULL);
     CHECK_RETURNFALSE(mutf8_descriptor != NULL);
     CHECK_RETURNFALSE(mutf8_signature != NULL);
+    struct DexMethod ignored;
     if(result == NULL)
     {
         // This could be a legitimate use-case to simply figure out if a method is found.
-        return false;
+        result = &ignored;
     }
 
+    LOGD("Looking up %s method %s %s", direct ? "direct" : "virtual", mutf8_descriptor, mutf8_signature);
+
+    LOGD("Looking up the StringID* for method name %s", mutf8_descriptor);
     const struct StringID* wanted_name = FindStringIDByModifiedUTF8StringValue(dex_class->dex_header, mutf8_descriptor);
     if(wanted_name == NULL)
     {
+        LOGD("Could not find class name as string.");
         return false;
     }
+    LOGD("Found StringId for %s at "PRINT_PTR, mutf8_descriptor, (uintptr_t)wanted_name);
 
+    LOGD("Looking up the ProtoID* for method signature %s", mutf8_signature);
     const struct ProtoID* wanted_prototype = FindProtoIDBySignatureString(dex_class->dex_header, mutf8_signature);
     if(wanted_prototype == NULL)
     {
+        LOGD("Could not find prototype.");
         return false;
     }
+    LOGD("Found ProtoID for %s at "PRINT_PTR, mutf8_signature, (uintptr_t)wanted_prototype);
+
 
     uint32_t num_methods =  dex_class->decoded_class_data.direct_methods_size;
     const uint8_t* p =      dex_class->decoded_class_data.direct_methods_array;
@@ -105,6 +115,7 @@ static bool FindMethod(const struct DexClass* dex_class, struct DexMethod* resul
         p =                 dex_class->decoded_class_data.virtual_methods_array;
     }
 
+    LOGD("Looking for method with matching name and prototype.");
     uint32_t method_idx = 0;
     struct DecodedMethod current;
     for(uint32_t i = 0; i < num_methods; i++)
@@ -115,14 +126,20 @@ static bool FindMethod(const struct DexClass* dex_class, struct DexMethod* resul
         const struct StringID* current_name = GetStringID(dex_class->dex_header, method_id->name_idx_);
         const struct ProtoID* current_proto = GetProtoID(dex_class->dex_header, method_id->proto_idx_);
 
+        LOGD("MethodID: "PRINT_PTR", StringID: "PRINT_PTR", ProtoID: "PRINT_PTR, method_id, current_name, current_proto);
+
+        LOGD("Comparing method name.");
         if(CompareStringIDsByDexOrdering(dex_class->dex_header, wanted_name, current_name) != 0)
         {
             continue;
         }
+        LOGD("Comparing method proto.");
         if(CompareProtoIDsByDexOrdering(dex_class->dex_header, wanted_prototype, current_proto) != 0)
         {
             continue;
         }
+
+        LOGD("Found method.");
 
         // Found the desired Method.
         result->dex_header = dex_class->dex_header;

@@ -31,11 +31,14 @@ public class MainActivity extends Activity {
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         this.mOutput = (TextView) this.findViewById(R.id.output);
+
+        this.testHookingThreadEntryPoints();
 
         try {
             BufferedReader reader = new BufferedReader(new FileReader("/proc/self/maps"));
@@ -54,6 +57,7 @@ public class MainActivity extends Activity {
         String a = "NdkTest";
         testtest(a, 10, a, a, 10);
         System.loadLibrary(a);
+
 
         /*try
         {
@@ -174,7 +178,6 @@ public class MainActivity extends Activity {
         if (id == R.id.action_settings) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 

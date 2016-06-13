@@ -74,7 +74,7 @@ bool set_memory_protection(const void *startingAddress, jlong numBytes, jboolean
     void *addr = get_page_base(startingAddress);
     jlong size = numBytes + (startingAddress - addr);
 
-    /*LOGD("Attempting to change memory permissions to %x...", protections);*/
+    /*LOGV("Attempting to change memory permissions to %x...", protections);*/
     if (mprotect(addr, size, protections) == -1)
     {
         LOGE("Failed to change protections of %lld bytes from address "
@@ -82,7 +82,7 @@ bool set_memory_protection(const void *startingAddress, jlong numBytes, jboolean
                      ", errno: %d", size, (uintptr_t) addr, errno);
         return false;
     }
-    /*LOGD("Success! Changed protections of %lld bytes from address "
+    /*LOGV("Success! Changed protections of %lld bytes from address "
                  PRINT_PTR
                  " to full.", size, (uintptr_t) addr);*/
     return true;
@@ -97,12 +97,14 @@ void *allocate_memory_chunk(size_t size)
         set_last_error("Allocation of memory failed.");
         LOGF("malloc of size %zd failed: %s", size, strerror(errno));
     }
+    LOGV("Allocation of %d bytes memory returned: "PRINT_PTR, size, result);
     return result;
 }
 
 void free_memory_chunk(void *mem)
 {
     CHECK_NE(mem, NULL);
+    LOGV("Memory being freed: "PRINT_PTR, mem);
     free(mem);
 }
 

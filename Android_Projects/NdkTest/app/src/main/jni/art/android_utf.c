@@ -78,9 +78,13 @@ uint32_t GetUtf16FromUtf8(const char **utf8_data_in)
     return surrogate_pair;
 }
 
-int CompareModifiedUtf8ToModifiedUtf8AsUtf16CodePointValues(const char *utf8_1,
-                                                                   const char *utf8_2)
+int CompareModifiedUtf8ToModifiedUtf8AsUtf16CodePointValues(const char *utf8_1, const char *utf8_2)
 {
+    if(utf8_1 == NULL && utf8_2 == NULL)
+    {
+        return 0;
+    }
+
     uint32_t c1, c2;
     do
     {

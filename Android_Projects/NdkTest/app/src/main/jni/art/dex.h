@@ -52,10 +52,22 @@ uint32_t dex_NumberOfMethods    ( const struct DexHeader* hdr );
 uint32_t dex_NumberOfFields     ( const struct DexHeader* hdr );
 uint32_t dex_NumberOfClassDefs  ( const struct DexHeader* hdr );
 
-bool dex_FindClass(const struct DexHeader *hdr, struct DexClass *result, char *descriptor);
-bool dex_GetClass(const struct DexHeader* hdr, struct DexClass* result, uint16_t index);
+bool dex_FindClass(const struct DexHeader *hdr,
+                   struct DexClass *result,
+                   char *mutf8_descriptor);
+bool dex_GetClass(const struct DexHeader* hdr,
+                  struct DexClass* result,
+                  uint16_t index);
 
-bool dex_FindVirtualMethod(const struct DexClass *clazz, struct DexMethod *result, const char *mutf8_descriptor, const char *mutf8_Signature);
-bool dex_FindDirectMethod(const struct DexClass *clazz, struct DexMethod *result, const char *descriptor, const char *signature);
+
+bool dex_FindVirtualMethod(const struct DexClass *clazz,
+                           struct DexMethod *result,
+                           const char *mutf8_descriptor,
+                           const char *mutf8_Signature);
+
+bool dex_FindDirectMethod(const struct DexClass *clazz,
+                          struct DexMethod *result,
+                          const char *mutf8_descriptor,
+                          const char *mutf8_signature);
 
 #endif //NDKTEST_DEX_FILE_H

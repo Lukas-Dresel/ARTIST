@@ -97,6 +97,19 @@ bool stats_NumCompiledMethodsInOatFile(struct OatFile* oat, uint32_t* result_com
     return true;
 }
 
+bool stats_logNumCompiledMethodsInOatClass(struct OatClass* oat_class, uint32_t* result_compiled, uint32_t* result_total)
+{
+    const struct DexHeader* hdr = oat_class->dex_class.dex_header;
+    const char* class_name = GetTypeIDNameByIdx(hdr, oat_class->dex_class.class_def->class_idx_);
+    uint32_t class_compiled = 0;
+    uint32_t class_total = 0;
+    if(!stats_NumCompiledMethodsInOatDexClass(oat_class, &class_compiled, &class_total))
+    {
+        return false;
+    }
+    LOGD("Class %s: %d Comp / %d Total === %f", class_name, class_compiled, class_total, (double)class_compiled/(double)class_total);
+    return true;
+}
 bool stats_logNumCompiledMethodsInOatDexFile(struct OatDexFile* oat_dex, uint32_t* result_compiled, uint32_t* result_total)
 {
     CHECK_RETURNFALSE(oat_dex != NULL);
@@ -151,7 +164,11 @@ bool stats_logNumCompiledMethodsInOatFile(struct OatFile* oat)
         {
             return false;
         }
-        LOGD("-> OatDexFile [%d]: %d Comp / %d Total === %f", i, dex_compiled, dex_total, (double)dex_compiled/(double)dex_total);
+        uint32_t str_len = current_dex.data.location_string.length;
+        char path[str_len + 1];
+        strncpy(path, current_dex.data.location_string.content, str_len);
+        path[str_len] = 0;
+        LOGD("-> OatDexFile [%s]: %d Comp / %d Total === %f", path, dex_compiled, dex_total, (double)dex_compiled/(double)dex_total);
         oat_compiled += dex_compiled;
         oat_total += dex_total;
     }
