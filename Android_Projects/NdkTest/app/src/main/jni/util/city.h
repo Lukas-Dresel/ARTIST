@@ -1,3 +1,8 @@
+/*
+ * This file is in no way part of my work and was used as-is aside from this notice.
+ * Lukas Dresel
+ */ 
+ 
 // city.h - cityhash-c
 // CityHash on C
 // Copyright (c) 2011-2012, Alexander Nusov
