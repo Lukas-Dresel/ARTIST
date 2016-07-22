@@ -47,21 +47,25 @@ typedef struct ArmCodeInfo
 
 struct TrapPointInfo
 {
-    HOOKCALLBACK handler;
-    void*                   handler_args;
+    struct InstructionInfo  target_instruction_info;
 
-    struct InstructionInfo  target;
+            struct
+            {
+                bool            enabled;
+                HOOKCALLBACK    callback;
+                void*           callback_args;
+            } state;
 
-    uint32_t                instr_size;
-
-    uint32_t                trapping_method;
-    union
-    {
-        ThumbCodeInfo       thumbCode;
-        ArmCodeInfo         armCode;
-    };
-
-    struct list_head        installed;
+            struct
+            {
+                uint32_t instr_size;
+                uint32_t trapping_method;
+                union
+                {
+                    ThumbCodeInfo thumb;
+            ArmCodeInfo arm;
+        };
+    } hook_info;
 };
 
 #ifdef __cplusplus

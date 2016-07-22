@@ -32,9 +32,9 @@ bool        IsAddressThumbMode(const void *address)
     uint32_t offset = (uint32_t)(address - aligned);
     return (offset == 1 || offset == 3);
 }
-const void* InstructionPointerToCodePointer(const void *instruction_pointer)
+void* InstructionPointerToCodePointer(const void *instruction_pointer)
 {
-    return (const void*)((uint64_t) instruction_pointer & ~0x1);
+    return (void*)((uint64_t) instruction_pointer & ~0x1);
 }
 
 static const uint16_t thumb_32bit_mask = 0b1111100000000000;  //  this one can be a const int.

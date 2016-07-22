@@ -47,6 +47,10 @@ void dump_installed_trappoints_info();
 TrapPointInfo * trappoint_Install           (void *addr, uint32_t method, HOOKCALLBACK handler,
                                              void *additionalArg);
 void            trappoint_Uninstall         (TrapPointInfo *trap);
+
+bool            trappoint_Enable            (TrapPointInfo *trap);
+bool            trappoint_Disable           (TrapPointInfo *trap);
+
 TrapPointInfo * trappoint_FindWithPredicate (TRAPPOINT_PREDICATE p, void *args);
 bool            trappoint_ValidateContents  (TrapPointInfo *trap);
 

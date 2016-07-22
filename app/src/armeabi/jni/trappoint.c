@@ -32,10 +32,10 @@ extern "C"
 #include "../../main/jni/util/memory.h"
 #include "../../main/jni/abi/abi_interface.h"
 #include "../../main/jni/util/error.h"
+#include "../../main/jni/util/concurrent_persistent_list.h"
 
 
-
-static struct list_head installed_trappoints;
+static struct concurrent_persistent_list_entry* concurrent_persistent_list_installed_trappoints;
 static struct sigaction old_sigtrap_action;
 static struct sigaction old_sigill_action;
 
@@ -67,7 +67,7 @@ void init_trappoints() {
         perror("sigaltstack");
     }*/
 
-    INIT_LIST_HEAD(&installed_trappoints);
+    concurrent_persistent_list_installed_trappoints = NULL;
 
     install_signal_handler(SIGTRAP, &sigtrap_handler, &old_sigtrap_action);
     install_signal_handler(SIGILL, &sigill_handler, &old_sigill_action);
@@ -83,16 +83,16 @@ void destroy_trappoints() {
 }
 
 static bool sigill_handler_trappoint_predicate(TrapPointInfo *trap, void *args) {
-    if (trap->trapping_method & TRAP_METHOD_SIG_ILL == 0) {
+    if (trap->hook_info.trapping_method & TRAP_METHOD_SIG_ILL == 0) {
         return false;
     }
-    return trap->target.mem_addr == args;
+    return trap->target_instruction_info.mem_addr == args;
 }
 static bool sigtrap_handler_trappoint_predicate(TrapPointInfo *trap, void *args) {
-    if (trap->trapping_method & TRAP_METHOD_SIG_TRAP == 0) {
+    if (trap->hook_info.trapping_method & TRAP_METHOD_SIG_TRAP == 0) {
         return false;
     }
-    return trap->target.mem_addr == args;
+    return trap->target_instruction_info.mem_addr == args;
 }
 
 /**
@@ -113,10 +113,10 @@ static bool signal_handler_invoke_trappoint_handler(int signal, siginfo_t *sigIn
     }
 
     /*
-     * Every trappoint has to be removed, as it is necessary to reset the instruction. This is
+     * Every trappoint has to be disabled, as it is necessary to reset the instruction. This is
      * because on return of the signal handler the offending instruction is re-executed.
      *
-     * That's why we save the information we still need and then uninstall the trappoint.
+     * That's why we save the information we still need and then disable the trappoint.
      * This executes the handler in a state where no collision with information that is about
      * to be freed can occur. This allows for example the handler to cause a double-trap by
      * re-installing another trappoint at the same address. Without uninstalling first this
@@ -124,11 +124,11 @@ static bool signal_handler_invoke_trappoint_handler(int signal, siginfo_t *sigIn
      *
      * But this way the handler gets a clean slate to work with.
      */
-    HOOKCALLBACK    handler = trap->handler;
-    void*           handler_arg = trap->handler_args;
-    void*           trapped_instruction = (void*)trap->target.call_addr;
+    HOOKCALLBACK    handler = trap->state.callback;
+    void*           handler_arg = trap->state.callback_args;
+    void*           trapped_instruction = (void*)trap->target_instruction_info.call_addr;
     // Remove it!
-    trappoint_Uninstall(trap);
+    trappoint_Disable(trap);
 
     if(handler != NULL)
     {
@@ -146,8 +146,9 @@ static bool signal_handler_invoke_trappoint_handler(int signal, siginfo_t *sigIn
     }
     return true;
 }
-static void sigill_handler(int signal, siginfo_t *sigInfo, ucontext_t *context) {
-    LOGD("Inside the SIGILL handler..., signal %d, siginfo_t "
+void sigill_handler(int signal, siginfo_t *sigInfo, ucontext_t *context) {
+    LOGD("Inside the SIGILL handler..., s\n"
+                 "static voiignal %d, siginfo_t "
                  PRINT_PTR
                  ", context "
                  PRINT_PTR, signal, (uintptr_t) sigInfo, (uintptr_t) context);
@@ -214,36 +215,44 @@ TrapPointInfo *trappoint_Install(void *addr, uint32_t method, HOOKCALLBACK handl
     TrapPointInfo* trap = (TrapPointInfo*)allocate_memory_chunk(sizeof(TrapPointInfo));
     if (trap != NULL)
     {
-        trap->handler = handler;
-        trap->handler_args = additionalArgs;
+        trap->state.callback = handler;
+        trap->state.callback_args = additionalArgs;
 
-        trap->target.thumb = IsAddressThumbMode(addr);
-        trap->target.mem_addr = InstructionPointerToCodePointer(addr);
-        trap->target.call_addr = addr;
+        trap->target_instruction_info.thumb = IsAddressThumbMode(addr);
+        trap->target_instruction_info.mem_addr = InstructionPointerToCodePointer(addr);
+        trap->target_instruction_info.call_addr = addr;
 
-        trap->instr_size = trap->target.thumb ? 2 : 4;
-        trap->trapping_method = method;
+        trap->hook_info.instr_size = trap->target_instruction_info.thumb ? 2 : 4;
+        trap->hook_info.trapping_method = method;
 
-        if (set_memory_protection(trap->target.mem_addr, trap->instr_size, true, true, true)) {
-            if (trap->target.thumb) {
-                trap->thumbCode.trap_instruction = make_thumb_trap_instruction(method);
+        if (set_memory_protection(trap->target_instruction_info.mem_addr,
+                                  trap->hook_info.instr_size, true, true, true))
+        {
+            if (trap->target_instruction_info.thumb) {
+                trap->hook_info.thumb.trap_instruction = make_thumb_trap_instruction(method);
 
-                uint16_t *target = (uint16_t *) trap->target.mem_addr;
-                trap->thumbCode.preserved = *target;
-                *target = trap->thumbCode.trap_instruction;
+                uint16_t *target = (uint16_t *) trap->target_instruction_info.mem_addr;
+                trap->hook_info.thumb.preserved = *target;
+                *target = trap->hook_info.thumb.trap_instruction;
             }
             else {
-                trap->armCode.trap_instruction = make_arm_trap_instruction(method);
+                trap->hook_info.arm.trap_instruction = make_arm_trap_instruction(method);
 
-                uint32_t *target = (uint32_t *) trap->target.mem_addr;
-                trap->armCode.preserved = *target;
-                *target = trap->armCode.trap_instruction;
+                uint32_t *target = (uint32_t *) trap->target_instruction_info.mem_addr;
+                trap->hook_info.arm.preserved = *target;
+                *target = trap->hook_info.arm.trap_instruction;
             }
-            __builtin___clear_cache((void *) trap->target.mem_addr,
-                                    (void *) trap->target.mem_addr + trap->instr_size);
+            __builtin___clear_cache(trap->target_instruction_info.mem_addr,
+                                    trap->target_instruction_info.mem_addr +
+                                            trap->hook_info.instr_size);
 
             // Installation succeeded, so insert ourself into the installed trap point list
-            list_add(&trap->installed, &installed_trappoints);
+
+            if(!concurrent_persistent_list_try_create(&concurrent_persistent_list_installed_trappoints, trap))
+            {
+                // Not being able to create the list means the list must already exist => insert
+                concurrent_persistent_list_insert_after(concurrent_persistent_list_installed_trappoints, trap);
+            }
             return trap;
         }
         free_memory_chunk(trap);
@@ -258,19 +267,21 @@ bool trappoint_Enable(TrapPointInfo *trap)
     if (!trappoint_ValidateContents(trap)) {
         return false;
     }
-    if (!set_memory_protection(trap->target.mem_addr, trap->instr_size, true, true, true)) {
+    if (!set_memory_protection(trap->target_instruction_info.mem_addr, trap->hook_info.instr_size, 
+                               true, true, true)) 
+    {
         set_last_error(
                 "Cannot set memory protections to write the trappoint instruction. TRAPPOINT WAS NOT SET.");
         return false;
     }
     else {
-        if (trap->target.thumb) {
-            *((uint16_t *) trap->target.mem_addr) = trap->thumbCode.trap_instruction;
+        if (trap->target_instruction_info.thumb) {
+            *((uint16_t *) trap->target_instruction_info.mem_addr) = trap->hook_info.thumb.trap_instruction;
         }
         else {
-            *((uint32_t *) trap->target.mem_addr) = trap->armCode.trap_instruction;
+            *((uint32_t *) trap->target_instruction_info.mem_addr) = trap->hook_info.arm.trap_instruction;
         }
-        __builtin___clear_cache(trap->target.mem_addr, trap->target.mem_addr + trap->instr_size);
+        __builtin___clear_cache(trap->target_instruction_info.mem_addr, trap->target_instruction_info.mem_addr + trap->hook_info.instr_size);
     }
     return true;
 }
@@ -279,70 +290,65 @@ bool trappoint_Disable(TrapPointInfo *trap) {
     if (!trappoint_ValidateContents(trap)) {
         return false;
     }
-    if (!set_memory_protection(trap->target.mem_addr, trap->instr_size, true, true, true)) {
+    if (!set_memory_protection(trap->target_instruction_info.mem_addr, trap->hook_info.instr_size, true, true, true)) {
         set_last_error(
                 "Cannot set memory protections to reset the trappoints target to its original state. NOT RESETTING MEMORY TO ORIGINAL STATE.");
         return false;
     }
     else {
-        if (trap->target.thumb) {
-            *((uint16_t *) trap->target.mem_addr) = trap->thumbCode.preserved;
+        if (trap->target_instruction_info.thumb) {
+            *((uint16_t *) trap->target_instruction_info.mem_addr) = trap->hook_info.thumb.preserved;
         }
         else {
-            *((uint32_t *) trap->target.mem_addr) = trap->armCode.preserved;
+            *((uint32_t *) trap->target_instruction_info.mem_addr) = trap->hook_info.arm.preserved;
         }
-        __builtin___clear_cache(trap->target.mem_addr, trap->target.mem_addr + trap->instr_size);
+        __builtin___clear_cache(trap->target_instruction_info.mem_addr, trap->target_instruction_info.mem_addr + trap->hook_info.instr_size);
     }
     return true;
 }
-void trappoint_Uninstall(TrapPointInfo *trap) {
-    if (!trappoint_Disable(trap)) {
-        // The disable function alread tells us what we need to know, as it calls validate
-        return;
-    }
-    list_del(&trap->installed);
-    free_memory_chunk(trap);
-}
 
+static void dump_trappoint_info(int index, concurrent_persistent_list_entry* ent,
+                                void* current_element, void* args)
+{
+    TrapPointInfo* trap = (TrapPointInfo*)current_element;
+    LOGD("FOUND Trappoint for "PRINT_PTR"(%s)", (uintptr_t) trap->target_instruction_info.mem_addr,
+         trap->target_instruction_info.thumb ? "THUMB" : "ARM");
+
+    LOGD("->Handler function: "PRINT_PTR, (uintptr_t) trap->state.callback);
+    LOGD("->Instruction Size: %d", trap->hook_info.instr_size);
+
+    LOGD("->Code Info:      ");
+    if ((trap->hook_info.trapping_method & TRAP_METHOD_SIG_ILL) != 0)
+    {
+        LOGD("->Trapping generates SIGILL");
+    }
+    if ((trap->hook_info.trapping_method & TRAP_METHOD_SIG_TRAP) != 0)
+    {
+        LOGD("->Trapping generates SIGTRAP");
+    }
+    if ((trap->hook_info.trapping_method & TRAP_METHOD_INSTR_BKPT) != 0)
+    {
+        LOGD("->->This is achieved using hardware-specific BKPT instructions.");
+    }
+    if ((trap->hook_info.trapping_method & TRAP_METHOD_INSTR_KNOWN_ILLEGAL) != 0)
+    {
+        LOGD("->->This is achieved using hardware-specific known illegal instructions.");
+    }
+    if (trap->target_instruction_info.thumb)
+    {
+        LOGD("->->Breakpoint:   0x%04x", trap->hook_info.thumb.trap_instruction);
+        LOGD("->->Preserved:    0x%04x", trap->hook_info.thumb.preserved);
+    }
+    else
+    {
+        LOGD("->->Breakpoint:   0x%08x", trap->hook_info.arm.trap_instruction);
+        LOGD("->->Preserved:    0x%08x", trap->hook_info.arm.preserved);
+    }
+}
 void dump_installed_trappoints_info() {
     LOGD("Dumping information on installed trappoints.");
-    TrapPointInfo *current;
-    list_for_each_entry(current, &installed_trappoints, installed)
-    {
-        LOGD("FOUND Trappoint for "PRINT_PTR"(%s)", (uintptr_t) current->target.mem_addr,
-             current->target.thumb ? "THUMB" : "ARM");
-
-        LOGD("->Handler function: "PRINT_PTR, (uintptr_t) current->handler);
-        LOGD("->Instruction Size: %d", current->instr_size);
-
-        LOGD("->Code Info:      ");
-        if ((current->trapping_method & TRAP_METHOD_SIG_ILL) != 0)
-        {
-            LOGD("->Trapping generates SIGILL");
-        }
-        if ((current->trapping_method & TRAP_METHOD_SIG_TRAP) != 0)
-        {
-            LOGD("->Trapping generates SIGTRAP");
-        }
-        if ((current->trapping_method & TRAP_METHOD_INSTR_BKPT) != 0)
-        {
-            LOGD("->->This is achieved using hardware-specific BKPT instructions.");
-        }
-        if ((current->trapping_method & TRAP_METHOD_INSTR_KNOWN_ILLEGAL) != 0)
-        {
-            LOGD("->->This is achieved using hardware-specific known illegal instructions.");
-        }
-        if (current->target.thumb)
-        {
-            LOGD("->->Breakpoint:   0x%04x", current->thumbCode.trap_instruction);
-            LOGD("->->Preserved:    0x%04x", current->thumbCode.preserved);
-        }
-        else
-        {
-            LOGD("->->Breakpoint:   0x%08x", current->armCode.trap_instruction);
-            LOGD("->->Preserved:    0x%08x", current->armCode.preserved);
-        }
-    }
+    concurrent_persistent_list_iterate(concurrent_persistent_list_installed_trappoints,
+                                       dump_trappoint_info, NULL);
 }
 
 
@@ -351,49 +357,64 @@ bool trappoint_ValidateContents(TrapPointInfo *trap) {
         set_last_error("The trappoint supplied was NULL!");
         return false;
     }
-    if (trap->target.call_addr == NULL || trap->target.mem_addr == NULL) {
+    if (trap->target_instruction_info.call_addr == NULL || trap->target_instruction_info.mem_addr == NULL) {
         set_last_error(
                 "A trappoint target address cannot be NULL. Either memory location or address itself was NULL.");
         return false;
     }
-    if (trap->target.thumb) {
-        if (((uint64_t) trap->target.call_addr & 0x1) == 0) {
+    if (trap->target_instruction_info.thumb) {
+        if (((uint64_t) trap->target_instruction_info.call_addr & 0x1) == 0) {
             set_last_error(
                     "How can the thumb mode be set if the call address doesn't have the least significant bit set?");
             return false;
         }
-        if (trap->instr_size != 2) {
+        if (trap->hook_info.instr_size != 2) {
             set_last_error("If we are in thumb mode, why is the instruction size not 2?");
             return false;
         }
     }
     else {
-        if (((uint64_t) trap->target.call_addr & 0x1) == 0x1) {
+        if (((uint64_t) trap->target_instruction_info.call_addr & 0x1) == 0x1) {
             set_last_error(
                     "How can the thumb mode not be set if the call address has the least significant bit set?");
             return false;
         }
-        if (trap->instr_size != 4) {
+        if (trap->hook_info.instr_size != 4) {
             set_last_error("If we are not in thumb mode, why is the instruction size not 4?");
             return false;
         }
     }
-    if (list_empty(&trap->installed)) {
-        set_last_error(
-                "Why is this trappoints installed list_entry empty if its supposed to be linked into the internal list of active trappoints?");
-        return false;
-    }
     return true;
 }
 
+struct TRAPPOINT_LIST_FIND_ARGS
+{
+    TRAPPOINT_PREDICATE predicate;
+    void* predicate_args;
+    TrapPointInfo* found_match;
+};
+static void find_trappoint_in_list_callback(int index, concurrent_persistent_list_entry* ent,
+                                            void* current_element, void* args)
+{
+    TrapPointInfo* trap = (TrapPointInfo*)current_element;
+    struct TRAPPOINT_LIST_FIND_ARGS* arguments = (struct TRAPPOINT_LIST_FIND_ARGS*)args;
 
-TrapPointInfo *trappoint_FindWithPredicate(TRAPPOINT_PREDICATE p, void *args) {
-    TrapPointInfo *current;
-    list_for_each_entry(current, &installed_trappoints, installed) {
-        if (p(current, args)) {
-            return current;
-        }
+    if(arguments->predicate(trap, arguments->predicate_args))
+    {
+        __sync_bool_compare_and_swap(&arguments->found_match, NULL, trap);
     }
+    return;
+}
+TrapPointInfo *trappoint_FindWithPredicate(TRAPPOINT_PREDICATE p, void *args)
+{
+    struct TRAPPOINT_LIST_FIND_ARGS cur_search_args =
+    {
+        .predicate = p,
+        .predicate_args = args,
+        .found_match = NULL
+    };
+    concurrent_persistent_list_iterate(concurrent_persistent_list_installed_trappoints,
+                                       find_trappoint_in_list_callback, &cur_search_args);
     return NULL;
 }
 

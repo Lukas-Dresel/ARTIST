@@ -26,8 +26,8 @@
 
 struct InstructionInfo
 {
-    const void* call_addr;
-    const void* mem_addr;
+    void*       call_addr;
+    void*       mem_addr;
     bool        thumb;
 };
 
