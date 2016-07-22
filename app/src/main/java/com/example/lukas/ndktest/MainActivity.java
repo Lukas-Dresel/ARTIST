@@ -204,14 +204,10 @@ public class MainActivity extends Activity {
     private native void testHookingAOTCompiledFunction();
     private native void testHookingInterpretedFunction();
     private native void testHookingDexLoadClass();
-    private native void testSingleStep();
-    private native void testBreakpointAtoi();
-    private native void tryNukeDexContent();
-
-
-    private native void dumpQuickEntryPointsInfo();
 
     private native void testHookingThreadEntryPoints();
+
+    private native void dumpQuickEntryPointsInfo();
 
     private native void dumpLibArtInterpretedFunctionsInNonAbstractClasses();
     private native void dumpMainOatInternals();

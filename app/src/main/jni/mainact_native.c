@@ -142,7 +142,7 @@ static void dumpMappedOatFileStatistics()
 }
 
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testtest(
-        JNIEnv *env, jobject instance, jstring a, jint b, jstring c, jstring d, jint e)
+        __unused JNIEnv *env, __unused jobject instance, jstring a, jint b, jstring c, jstring d, jint e)
 {
     LOGI("a: "PRINT_PTR, (uintptr_t)a);
     LOGI("b: "PRINT_PTR, (uintptr_t)b);
@@ -151,7 +151,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testtest(
     LOGI("e: "PRINT_PTR, (uintptr_t)e);
 }
 
-static void loadLibrary_OnEntry(void *addr, ucontext_t *ctx, void *additionalArg)
+static void loadLibrary_OnEntry(__unused void *addr, ucontext_t *ctx, void *additionalArg)
 {
     JavaVM* javaVM = additionalArg;
 
@@ -162,16 +162,16 @@ static void loadLibrary_OnEntry(void *addr, ucontext_t *ctx, void *additionalArg
     {
         return;
     }
-    unsigned char * arg0 = (void*)GetArgument(ctx, 0);
+    __unused unsigned char * arg0 = (void*)GetArgument(ctx, 0);
     unsigned char * arg1 = (void*)GetArgument(ctx, 1);
     struct MirrorHackString* loaded_library_name = (struct MirrorHackString*)arg1;
     char utf8[loaded_library_name->str_len + 10];
     ConvertUtf16ToModifiedUtf8(&utf8[0], loaded_library_name->str_content->chars, loaded_library_name->str_len);
     LOGI("Tried to load library: %s", utf8);
 }
-static void loadLibrary_OnExit(void *addr, ucontext_t *ctx, void *additionalArg)
+static void loadLibrary_OnExit(__unused void *addr, __unused ucontext_t *ctx, void *additionalArg)
 {
-    JavaVM* javaVM = additionalArg;
+    __unused JavaVM* javaVM = additionalArg;
     LOGI("Exiting loadLibrary.");
     dumpMappedOatFileStatistics();
 }
@@ -311,10 +311,10 @@ static bool breakOnFunction(const char* class_name, const char* method_name, con
     LOGI("Successfully breaking on %s :: %s %s (String).", class_name, method_name, proto);
     return true;
 }
-void default_OnEntry(void *addr, ucontext_t *ctx, char* func_name)
+void default_OnEntry(__unused void *addr, __unused ucontext_t *ctx, __unused char* func_name)
 {
 }
-void default_OnExit(void *addr, ucontext_t *ctx, char* func_name)
+void default_OnExit(__unused void *addr, __unused ucontext_t *ctx, __unused char* func_name)
 {
 
 }
@@ -324,17 +324,17 @@ struct SuspendMonitor
     void* hook;
     uint32_t calls;
 };
-static void monitorTestSuspend_OnEntry(void* addr, ucontext_t* ctx, void* arg)
+static void monitorTestSuspend_OnEntry(__unused void* addr, __unused ucontext_t* ctx, void* arg)
 {
     struct SuspendMonitor* monitor = arg;
     monitor->calls++;
     return;
 }
-static void monitorTestSuspend_OnExit(void* addr, ucontext_t* ctx, void* arg)
+static void monitorTestSuspend_OnExit(__unused void* addr, __unused ucontext_t* ctx, __unused void* arg)
 {
     return;
 }
-static installTestSuspendMonitor_OnEntry(void* addr, ucontext_t* ctx, void* arg)
+static void installTestSuspendMonitor_OnEntry(__unused void* addr, __unused ucontext_t* ctx, __unused void* arg)
 {
     struct SuspendMonitor* monitor = arg;
     monitor->hook = InvocationHook_Install(monitor->pTestSuspendAddress, TRAP_METHOD_SIG_ILL | TRAP_METHOD_INSTR_KNOWN_ILLEGAL,
@@ -346,7 +346,7 @@ static installTestSuspendMonitor_OnEntry(void* addr, ucontext_t* ctx, void* arg)
         LOGE("Could not install pTestSuspend monitoring hook.");
     }
 }
-static installTestSuspendMonitor_OnExit(void* addr, ucontext_t* ctx, void* arg)
+static void installTestSuspendMonitor_OnExit(__unused void* addr, __unused ucontext_t* ctx, void* arg)
 {
     struct SuspendMonitor* monitor = arg;
     if(monitor->hook != NULL)
@@ -417,7 +417,7 @@ void evaluation_performance(JavaVM* vm)
         LOGE("Could not break on com.android.cm3.MethodAtom.execute.");
     }
 }
-jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
+jint JNICALL JNI_OnLoad(JavaVM *vm, __unused void *reserved)
 {
 
     LOGW("#####################################################################");
@@ -437,7 +437,7 @@ jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
     return JNI_VERSION_1_6;
 }
 
-void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
+void JNICALL JNI_OnUnload(__unused JavaVM *vm, __unused void *reserved)
 {
     LOGI("#####################################################################");
     LOGI("Unloading library ndktest ...");
@@ -447,7 +447,7 @@ void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved)
 }
 
 
-void handler_change_NewStringUTF_arg(void *trap_addr, ucontext_t *context, void *args)
+void handler_change_NewStringUTF_arg(__unused void *trap_addr, ucontext_t *context, __unused void *args)
 {
     LOGI("Inside the trappoint handler...");
     LOGI("Previously Arg1: %x", (uint32_t)GetArgument(context, 1));
@@ -455,7 +455,7 @@ void handler_change_NewStringUTF_arg(void *trap_addr, ucontext_t *context, void 
     LOGI("After overwriting Arg1: %x", (uint32_t)GetArgument(context, 1));
 }
 
-void handler_hello_world(void *trap_addr, ucontext_t *context, void *args)
+void handler_hello_world(__unused void *trap_addr, __unused ucontext_t *context, __unused void *args)
 {
     LOGD("Inside the trappoint handler...");
     LOGD("Hello, World!");
@@ -504,15 +504,15 @@ void run_trap_point_test(JNIEnv *env)
     return;
 }
 
-void handler_change_bitcount_arg(void *trap_addr, ucontext_t *context, void *args)
+void handler_change_bitcount_arg(__unused void *trap_addr, ucontext_t *context, void *args)
 {
     LOGI("Inside the trappoint handler...");
-    LOGI("Previously Arg1: %x", GetArgument(context, 1));
+    LOGI("Previously Arg1: %llx", GetArgument(context, 1));
     SetArgument(context, 1, (uint32_t)args);
-    LOGI("After overwriting Arg1: %x", GetArgument(context, 1));
+    LOGI("After overwriting Arg1: %llx", GetArgument(context, 1));
 }
 JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAOTCompiledFunction(
-        JNIEnv *env, jobject instance)
+        __unused JNIEnv *env, __unused jobject instance)
 {
     void* elf_begin = (void*)0x706a8000;
     void* elf_oat_begin = elf_begin + 0x1000; // The oat section usually starts in the next page
@@ -538,7 +538,6 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAO
     {
         return;
     }
-    uint16_t class_def_index = GetIndexForClassDef(core_libart_jar.data.dex_file_pointer, java_lang_Integer.dex_class.class_def);
     if(!oat_FindDirectMethod(&java_lang_Integer, &int_bitcount, "bitCount", "(I)I"))
     {
         return;
@@ -553,7 +552,7 @@ JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testHookingAO
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_lukas_ndktest_MainActivity_dumpQuickEntryPointsInfo(JNIEnv *env, jobject instance)
+Java_com_example_lukas_ndktest_MainActivity_dumpQuickEntryPointsInfo(JNIEnv *env, __unused jobject instance)
 {
     void *current_thread_pointer = GetCurrentThreadObjectPointer(env);
     LOGD("The current_thread_pointer lies at "PRINT_PTR, (uintptr_t) current_thread_pointer);
@@ -563,7 +562,7 @@ void handler_suspend(void *trap_addr, ucontext_t *context, void *args)
     LOGD("Handling %s at "PRINT_PTR, (char*)args, (uintptr_t)trap_addr);
 }
 JNIEXPORT void JNICALL
-Java_com_example_lukas_ndktest_MainActivity_testHookingThreadEntryPoints(JNIEnv *env, jobject instance)
+Java_com_example_lukas_ndktest_MainActivity_testHookingThreadEntryPoints(JNIEnv *env, __unused jobject instance)
 {
     doPTestSuspendHook(env);
 
@@ -585,8 +584,9 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingThreadEntryPoints(JNIEnv 
 }
 
 JNIEXPORT void JNICALL
-Java_com_example_lukas_ndktest_MainActivity_testHookingDexLoadClass(JNIEnv *env, jobject instance) {
-
+Java_com_example_lukas_ndktest_MainActivity_testHookingDexLoadClass(__unused JNIEnv *env,
+                                                                    __unused jobject instance)
+{
     struct OatFile oat;
     struct OatDexFile core_libart_jar;
     struct OatClass dalvik_system_DexFile;
@@ -623,7 +623,9 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingDexLoadClass(JNIEnv *env,
 
 
 JNIEXPORT void JNICALL
-Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEnv *env, jobject instance) {
+Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(__unused JNIEnv *env,
+                                                                           __unused jobject this)
+{
 
     struct OatFile oat;
     struct OatDexFile core_libart_jar;
@@ -646,12 +648,14 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEn
     LOGD("Found OatClass dalvik.system.BaseDexClassLoader");
 
 
+    /*
     uint16_t class_def_index = GetIndexForClassDef(core_libart_jar.data.dex_file_pointer,
-                                                   dalvik_system_BaseDexClassLoader.dex_class.class_def);
+                                              dalvik_system_BaseDexClassLoader.dex_class.class_def);
 
     log_dex_file_class_def_contents(core_libart_jar.data.dex_file_pointer, class_def_index);
     log_oat_dex_file_class_def_contents(
             dalvik_system_BaseDexClassLoader.oat_class_data.backing_memory_address);
+    */
 
     if (!oat_FindVirtualMethod(&dalvik_system_BaseDexClassLoader, &findLibrary, "findLibrary",
                                "(Ljava/lang/String;)Ljava/lang/String;")) {
@@ -704,11 +708,11 @@ Java_com_example_lukas_ndktest_MainActivity_testHookingInterpretedFunction(JNIEn
             // Possible Workarounds:
             //
             // Actually do enlarge the file to hold our modifications
-            // (infeasible propably, too many changes necessary, offsets break etc.)
+            // (infeasible probably, too many changes necessary, offsets break etc.)
             //
             // Try modifying the next function as well with a simple redirection trampoline to give us more space to work with.
             // (Doesn't really solve the problem as this e.g. only works if our method is not the last on in the array.)
-            LOGF("Simply nothing we can do this method cannot be hooked this way. It's code offset is too small to allow for any changes.");
+            LOGF("Nothing we can do, this method cannot be hooked this way. Its code offset is too small to allow for any changes.");
         }
         else
         {
@@ -800,8 +804,7 @@ struct Step_Handler_Args
     void* func_start;
     uint32_t func_size;
 };
-static struct Step_Handler_Args step_handler_args;
-void handler_step_function(void *trap_addr, ucontext_t *context, void *args)
+void handler_step_function(__unused void *trap_addr, ucontext_t *context, void *args)
 {
     struct Step_Handler_Args* arg = (struct Step_Handler_Args*)args;
 
@@ -813,37 +816,12 @@ void handler_step_function(void *trap_addr, ucontext_t *context, void *args)
     if(next_instruction_pointer > start && next_instruction_pointer < end)
     {
         LOGD("Attempting to install next trappoint in single step chain. ");
-        trappoint_Install((void *) next_instruction_pointer, 0, handler_step_function, arg);
+        trappoint_Install(next_instruction_pointer, 0, handler_step_function, arg);
     }
     else
     {
         LOGD("Stopping singlestepping, as adress is out of range.");
     }
-}
-
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testSingleStep(
-        JNIEnv *env, jobject instance)
-{
-
-}
-
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_tryNukeDexContent(
-        JNIEnv *env, jobject instance)
-{
-
-}
-
-
-
-/*
- * Class:     com_example_lukas_ndktest_MainActivity
- * Method:    testBreakpointAtoi
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_com_example_lukas_ndktest_MainActivity_testBreakpointAtoi(JNIEnv *env,
-                                                                                      jobject instance)
-{
-    run_trap_point_test(env);
 }
 
 /*
@@ -947,7 +925,7 @@ Java_com_example_lukas_ndktest_MainActivity_dumpLibArtInterpretedFunctionsInNonA
         }
         LOGD("OatDexFile #%d: %s", current_oat_dex.index, current_oat_dex.data.location_string.content);
         struct OatClass clazz;
-        for(uint32_t i = 0; i < dex_NumberOfClassDefs(current_oat_dex.data.dex_file_pointer); i++)
+        for(uint16_t i = 0; i < dex_NumberOfClassDefs(current_oat_dex.data.dex_file_pointer); i++)
         {
             if(!oat_GetClass(&current_oat_dex, &clazz, i))
             {
@@ -961,7 +939,7 @@ Java_com_example_lukas_ndktest_MainActivity_dumpLibArtInterpretedFunctionsInNonA
             {
                 continue;
             }
-            const char* class_name = GetClassDefNameByIndex(clazz.oat_dex_file->data.dex_file_pointer, (uint16_t)i);
+            const char* class_name = GetClassDefNameByIndex(clazz.oat_dex_file->data.dex_file_pointer, i);
             /*if(strchr(class_name, '$') != NULL)
             {
                 continue;

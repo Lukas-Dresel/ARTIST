@@ -44,7 +44,6 @@ static void sigill_handler(int, siginfo_t *, ucontext_t *);
 static void install_signal_handler(int signal, void *handler, struct sigaction *old_action);
 
 static void install_signal_handler(int signal, void *handler, struct sigaction *old_action) {
-
     struct sigaction action;
 
     action.sa_sigaction = (void (*)(int, siginfo_t*, void*))handler;
@@ -163,7 +162,6 @@ static void sigill_handler(int signal, siginfo_t *sigInfo, ucontext_t *context) 
     LOGD("Returning from SIGILL-Handler.");
 }
 static void sigtrap_handler(int signal, siginfo_t *sigInfo, ucontext_t *context) {
-    mcontext_t *state_info = &(context->uc_mcontext);
 
     LOGD("Inside the SIGTRAP handler..., signal %d, siginfo_t "
                  PRINT_PTR
@@ -181,6 +179,8 @@ static void sigtrap_handler(int signal, siginfo_t *sigInfo, ucontext_t *context)
 
     LOGD("Returning from SIGTRAP-Handler.");
 }
+
+
 
 
 TrapPointInfo *trappoint_Install(void *addr, uint32_t method, HOOKCALLBACK handler,
