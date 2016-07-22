@@ -37,6 +37,14 @@ model {
                 }
             }
         }
+        productFlavors {
+            create("armeabi-v7a") {
+                ndk.with {
+                    abiFilters.add("armeabi-v7a")
+                }
+            }
+        }
+ 
     }
 }
 
