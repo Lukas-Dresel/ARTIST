@@ -23,18 +23,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
-import com.example.lukas.ndktest.MappedMemoryRegion;
-import com.example.lukas.ndktest.MemoryAnalysis.MemoryAnalyzer;
-import com.example.lukas.ndktest.MemoryAnalysis.MemoryRegionParser;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.Method;
-
-import dalvik.system.BaseDexClassLoader;
-import dalvik.system.DexClassLoader;
-import dalvik.system.DexFile;
 
 
 public class MainActivity extends Activity {
