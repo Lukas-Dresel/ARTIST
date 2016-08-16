@@ -1,0 +1,86 @@
+/*
+ * Copyright 2016 Lukas Dresel
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+apply plugin: 'com.android.model.native'
+
+model {
+    android {
+        compileSdkVersion = 24
+        buildToolsVersion = '24.0.1'
+
+        defaultConfig {
+            minSdkVersion.apiLevel = 21
+            targetSdkVersion.apiLevel = 24
+            versionCode = 1
+            versionName = '1.0'
+        }
+        ndk {
+            moduleName = 'AndroidRuntime'
+            CFlags.addAll(['--std=gnu99'])
+            abiFilters.addAll(['armeabi', 'armeabi-v7a'])
+            ldLibs.addAll(['android', 'log'])
+        }
+        sources {
+            main {
+                jni {
+                    dependencies {
+                        // if it were *.a, change shared --> static
+                        library 'Utility' linkage 'shared'
+                        library 'HostSystem' linkage 'shared'
+                    }
+                }
+            }
+        }
+    }
+    repositories{
+        libs(PrebuiltLibraries) {
+            Utility {
+                // Inform Android Studio where the header file dir for this lib is
+                headers.srcDir "../distribution/include/"
+
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("../distribution/lib/utility/${targetPlatform.getName()}/libUtility.so")
+                }
+            }
+            HostSystem {
+                // Inform Android Studio where the header file dir for this lib is
+                headers.srcDir "../distribution/include/"
+
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("../distribution/lib/hostsystem/${targetPlatform.getName()}/libHostSystem.so")
+                }
+            }
+        }
+    }
+}
+
+// This is just copy out the header file and built lib into distribution
+// directory for clint application to use; it is a small overhead of this sample:
+//    both lib and app are put inside one project space [save maintenance time]
+task(distributeLib, type : Copy, dependsOn: [':libUtility:distributeLib',
+                                             ':libHostSystem:distributeLib']) {
+    // trigger build library
+    dependsOn assemble
+    into '../distribution/'
+    // TODO fix this
+    from('src/main/jni/') {
+        include '**/*.h'
+        into 'include/art/'
+    }
+    from('build/outputs/native/release/lib') {
+        into 'lib/art'
+    }
+}

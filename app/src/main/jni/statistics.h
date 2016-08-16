@@ -19,7 +19,7 @@
 #define NDKTEST_STATISTICS_H
 
 #include <stdint.h>
-#include "art/oat.h"
+#include <art/oat.h>
 
 bool stats_NumCompiledMethodsInOatDexClass(struct OatClass* oat_class, uint32_t* result_compiled, uint32_t* result_total);
 bool stats_NumCompiledMethodsInOatDexFile(struct OatDexFile* oat_dex, uint32_t* result_compiled, uint32_t* result_total);

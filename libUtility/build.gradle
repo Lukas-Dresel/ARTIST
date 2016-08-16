@@ -1,0 +1,38 @@
+apply plugin: 'com.android.model.native'
+
+model {
+    android {
+        compileSdkVersion = 24
+        buildToolsVersion = '24.0.1'
+
+        defaultConfig {
+            minSdkVersion.apiLevel = 21
+            targetSdkVersion.apiLevel = 24
+            versionCode = 1
+            versionName = '1.0'
+        }
+        ndk {
+            moduleName = 'Utility'
+            CFlags.addAll(['--std=gnu99'])
+            abiFilters.addAll(['armeabi', 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64', 'mips', 'mips64'])
+            ldLibs.addAll(['android', 'log'])
+        }
+    }
+}
+
+// This is just copy out the header file and built lib into distribution
+// directory for clint application to use; it is a small overhead of this sample:
+//    both lib and app are put inside one project space [save maintenance time]
+task(distributeLib, type : Copy) {
+    // trigger build library
+    dependsOn assemble
+
+    into '../distribution/'
+    from('src/main/jni') {
+        include '**/*.h'
+        into 'include/utility/'
+    }
+    from('build/outputs/native/release/lib') {
+        into 'lib/utility/'
+    }
+}

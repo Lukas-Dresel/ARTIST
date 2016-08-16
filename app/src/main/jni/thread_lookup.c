@@ -18,7 +18,7 @@
 #include "thread_lookup.h"
 #include <sys/syscall.h>
 #include "art/oat_version_dependent/VERSION045/thread.h"
-#include "logging.h"
+#include "../../../../libUtility/src/main/jni/logging.h"
 
 static bool isCurrentThread(struct Thread* t)
 {

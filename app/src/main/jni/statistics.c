@@ -18,9 +18,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "statistics.h"
-#include "logging.h"
-#include "art/oat.h"
-#include "art/bit_vector_util.h"
+#include <utility/logging.h>
+#include <art/bit_vector_util.h>
 
 bool stats_NumCompiledMethodsInOatDexClass(struct OatClass* oat_class, uint32_t* result_compiled, uint32_t* result_total)
 {

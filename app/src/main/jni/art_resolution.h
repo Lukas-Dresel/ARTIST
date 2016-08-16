@@ -18,7 +18,7 @@
 #define NDKTEST_ART_RESOLUTION_H
 
 #include <stdbool.h>
-#include "art/oat.h"
+#include <art/oat.h>
 
 struct ArtClassContext
 {

@@ -15,30 +15,27 @@
  */
  
 #include <jni.h>
+#include <utility/logging.h>
+#include <art/android_utf.h>
+#include <utility/memory.h>
+
 #include "mainact_native.h"
 
 #include "lib_setup.h"
-#include "logging.h"
-#include "system_info.h"
-#include "../../armeabi/jni/abi.h"
-#include "hooking/trappoint_interface.h"
-#include "art/oat.h"
-#include "abi/abi_interface.h"
-#include "art/oat_dump.h"
-#include "art/leb128.h"
-#include "art/modifiers.h"
-#include "util/memory.h"
+#include "hostsystem/abi.h"
 #include "memory_map_lookup.h"
-#include "util/list.h"
 #include "statistics.h"
-#include "hooking/invocation_hook.h"
-#include "art/mirror_hacks.h"
-#include "art/android_utf.h"
 #include "art_resolution.h"
-#include "art/oat_version_dependent/VERSION045/thread.h"
-#include "art/oat_version_dependent/VERSION045/entrypoints/quick_entrypoints.h"
-#include "hooking/breakpoint.h"
 #include "thread_lookup.h"
+#include <hooking/invocation_hook.h>
+#include <hooking/trappoint_interface.h>
+#include <hooking/breakpoint.h>
+#include <art/oat_dump.h>
+#include <art/leb128.h>
+#include <art/modifiers.h>
+#include <art/mirror_hacks.h>
+
+#include <art/oat_version_dependent/VERSION045/thread.h>
 
 #ifdef __cplusplus
 extern "C"

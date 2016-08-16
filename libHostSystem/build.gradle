@@ -1,0 +1,88 @@
+apply plugin: 'com.android.model.native'
+
+def distrib_include_dir = file("../distribution/include").absolutePath
+def distrib_lib_dir = file("../distribution/lib").absolutePath
+model {
+    android {
+        compileSdkVersion = 24
+        buildToolsVersion = '24.0.1'
+
+        defaultConfig {
+            minSdkVersion.apiLevel = 21
+            targetSdkVersion.apiLevel = 24
+            versionCode = 1
+            versionName = '1.0'
+        }
+        ndk {
+            moduleName = 'HostSystem'
+
+            toolchain = 'clang'
+            CFlags.addAll(['--std=gnu99'])
+            ldLibs.addAll(['android', 'log'])
+
+            // Workaround, for some reason I can't figure out a way to make the library dependencies
+            // apply to the architecture specific source sets
+            CFlags.addAll(['-I', distrib_include_dir])
+        }
+        sources {
+            main {
+                jni {
+                    source {
+                        srcDir 'src/main/jni'
+                    }
+                }
+            }
+            armeabi {
+                jni {
+                    source {
+                        srcDir 'src/armeabi/jni'
+                    }
+                }
+            }
+            armeabi_v7a {
+                jni {
+                    source {
+                        srcDir 'src/armeabi/jni'
+                    }
+                }
+            }
+        }
+        productFlavors {
+            create("armeabi") {
+                ndk.with {
+                    abiFilters.add("armeabi")
+                    ldFlags.add('-L' + file("${distrib_lib_dir}/utility/armeabi/").absolutePath)
+                    ldFlags.add('-lUtility')
+                }
+            }
+            create("armeabi_v7a") {
+                ndk.with {
+                    abiFilters.add("armeabi-v7a")
+                    ldFlags.add('-L' + file("${distrib_lib_dir}/utility/armeabi-v7a/").absolutePath)
+                    ldFlags.add('-lUtility')
+                }
+            }
+        }
+    }
+}
+
+// This is just copy out the header file and built lib into distribution
+// directory for clint application to use; it is a small overhead of this sample:
+//    both lib and app are put inside one project space [save maintenance time]
+task(distributeLib, type : Copy) {
+    // trigger build library
+    dependsOn assemble
+
+    into '../distribution/'
+    from('src/main/jni') {
+        include '**/*.h'
+        into 'include/hostsystem/'
+    }
+
+    from ('build/outputs/native/release/armeabi/lib/') {
+        into 'lib/hostsystem'
+    }
+    from ('build/outputs/native/release/armeabi_v7a/lib/') {
+        into 'lib/hostsystem'
+    }
+}

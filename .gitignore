@@ -1,8 +1,7 @@
-
 # Remove Android Studio stuff
 /.gradle
 /local.properties
 /.idea
-/build
-
+build/
+/distribution/
 *.iml
