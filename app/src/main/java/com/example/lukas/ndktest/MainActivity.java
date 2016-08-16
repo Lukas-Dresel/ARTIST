@@ -61,7 +61,7 @@ public class MainActivity extends Activity {
         }
 
 
-        String a = "NdkTest";
+        String a = "artist";
         testtest(a, 10, a, a, 10);
         System.loadLibrary(a);
 
@@ -208,6 +208,6 @@ public class MainActivity extends Activity {
 
     static
     {
-        System.loadLibrary("NdkTest");
+        System.loadLibrary("artist");
     }
 }
