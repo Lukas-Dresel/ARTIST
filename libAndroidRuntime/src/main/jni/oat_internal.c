@@ -46,7 +46,7 @@
 #include "oat_internal.h"
 #include "dex_internal.h"
 #include "bit_vector_util.h"
-#include "../../../../libUtility/src/main/jni/logging.h"
+#include <utility/logging.h>
 #include <utility/system_info.h>
 #include <hostsystem/abi.h>
 

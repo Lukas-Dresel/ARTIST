@@ -24,7 +24,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
-#include "../../../../libUtility/src/main/jni/typedefs.h"
+#include <utility/typedefs.h>
 
 
 typedef struct MemMap

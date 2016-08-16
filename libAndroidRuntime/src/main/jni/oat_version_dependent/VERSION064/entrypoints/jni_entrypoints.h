@@ -22,7 +22,7 @@
 #define NDKTEST_ART_ENTRYPOINTS_JNI_ENTRYPOINTS_H
 
 #include <jni.h>
-#include "../../../../../../../../libUtility/src/main/jni/macros.h"
+#include <utility/macros.h>
 
 struct PACKED(4) JniEntryPoints {
 // Called when the JNI method isn't registered.

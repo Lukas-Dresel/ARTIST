@@ -19,12 +19,13 @@
 
 #include <stdio.h>
 #include <errno.h>
-#include "../../../../libUtility/src/main/jni/error.h"
-#include "../../../../libUtility/src/main/jni/logging.h"
-#include "../../../../libUtility/src/main/jni/memory.h"
+#include <utility/error.h>
+#include <utility/logging.h>
+#include <utility/memory.h>
+#include <utility/city.h>
+#include <art/oat_internal.h>
+
 #include "elf.h"
-#include "../../../../libAndroidRuntime/src/main/jni/oat_internal.h"
-#include "../../../../libUtility/src/main/jni/city.h"
 
 static size_t whitespaceFreeStringLength(const char* str)
 {

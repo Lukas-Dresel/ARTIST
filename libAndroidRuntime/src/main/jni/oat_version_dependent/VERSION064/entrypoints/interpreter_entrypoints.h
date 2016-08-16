@@ -21,9 +21,9 @@
 #ifndef NDKTEST_ART_ENTRYPOINTS_INTERPRETER_ENTRYPOINTS_H
 #define NDKTEST_ART_ENTRYPOINTS_INTERPRETER_ENTRYPOINTS_H
 
-#include "../../../../../../../libUtility/src/main/jni/macros.h"
+#include <utility/macros.h>
 #include "../../../dex_internal.h"
-#include "../../../stack.h"
+#include "../stack.h"
 
 struct Thread;
 // Pointers to functions that are called by interpreter trampolines via thread-local storage.

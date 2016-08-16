@@ -21,7 +21,7 @@
 #include <stdint.h>
 
 #include "dex.h"
-#include "../../../../libUtility/src/main/jni/logging.h"
+#include <utility/logging.h>
 
 uint32_t dex_NumberOfStrings  ( const struct DexHeader* hdr )
 {

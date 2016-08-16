@@ -18,10 +18,6 @@ package com.example.lukas.ndktest.MemoryAnalysis;
 
 import com.example.lukas.ndktest.MappedMemoryRegion;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.Multimap;
-
-import java.util.LinkedList;
-import java.util.Map;
 
 /**
  * Created by Lukas on 4/20/2015.

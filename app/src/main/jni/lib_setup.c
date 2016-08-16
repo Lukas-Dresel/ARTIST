@@ -20,9 +20,9 @@ extern "C"
 #endif
 
 #include "lib_setup.h"
-#include "../../../../libUtility/src/main/jni/system_info.h"
-#include "../../../../libHooking/src/main/jni/trappoint_interface.h"
-#include "../../../../libHooking/src/main/jni/self_patching_trappoint.h"
+#include <utility/system_info.h>
+#include <hooking/trappoint_interface.h>
+#include <hooking/self_patching_trappoint.h>
 
 void init()
 {

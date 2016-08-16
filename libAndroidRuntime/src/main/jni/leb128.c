@@ -28,8 +28,8 @@ extern "C" {
 
 #include <stdbool.h>
 
-#include "../../../../libUtility/src/main/jni/macros.h"
-#include "../../../../libUtility/src/main/jni/bit_utils.h"
+#include <utility/macros.h>
+#include <utility/bit_utils.h>
 
 // Reads an unsigned LEB128 value, updating the given pointer to point
 // just past the end of the read value. This function tolerates

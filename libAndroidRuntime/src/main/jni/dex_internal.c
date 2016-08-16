@@ -44,7 +44,7 @@
 
 #include <stdlib.h>
 #include "dex_internal.h"
-#include "../../../../libUtility/src/main/jni/logging.h"
+#include <utility/logging.h>
 #include "android_utf.h"
 #include "leb128.h"
 

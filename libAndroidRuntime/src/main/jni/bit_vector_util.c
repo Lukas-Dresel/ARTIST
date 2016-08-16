@@ -20,8 +20,8 @@
 
 #include <stdbool.h>
 #include "bit_vector_util.h"
-#include "../../../../libUtility/src/main/jni/logging.h"
-#include "../../../../libUtility/src/main/jni/bit_utils.h"
+#include <utility/logging.h>
+#include <utility/bit_utils.h>
 
 // Mostly adopted from AOSP source code.
 // platform/art/+/master/runtime/base/bit_vector.cc

@@ -20,7 +20,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "../../../../libUtility/src/main/jni/list.h"
+#include <utility/list.h>
 
 // TODO This entire class may still contain memory leaks. Not well checked yet.
 

@@ -16,8 +16,8 @@
 
 #include "art_resolution.h"
 #include "memory_map_lookup.h"
-#include "../../../../libUtility/src/main/jni/logging.h"
-#include "../../../../libAndroidRuntime/src/main/jni/oat_dump.h"
+#include <utility/logging.h>
+#include <art/oat_dump.h>
 
 /*
  *
