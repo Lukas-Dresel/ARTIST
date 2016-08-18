@@ -61,7 +61,7 @@ concurrent_persistent_list_entry* concurrent_persistent_list_insert_after(
     {
         new_ent->next = insert_after->next;
     }
-    while(__sync_bool_compare_and_swap(&insert_after->next, new_ent->next, new_ent));
+    while(!__sync_bool_compare_and_swap(&insert_after->next, new_ent->next, new_ent));
 
     return new_ent;
 }
