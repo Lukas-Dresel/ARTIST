@@ -80,10 +80,15 @@ void    concurrent_persistent_list_iterate(concurrent_persistent_list_entry *lis
     CHECK(callback != NULL);
 
     int index = 0;
-    concurrent_persistent_list_entry* current_entry = list->next;
-    while(current_entry != list)
+    concurrent_persistent_list_entry* current_entry = list;
+    while(true)
     {
         callback(index++, current_entry, current_entry->element, args);
+
         current_entry = current_entry->next;
+        if(current_entry == list)
+        {
+            break;
+        }
     }
 }
