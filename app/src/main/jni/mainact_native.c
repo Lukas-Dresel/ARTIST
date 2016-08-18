@@ -422,8 +422,9 @@ jint JNICALL JNI_OnLoad(JavaVM *vm, __unused void *reserved)
     LOGW("#####################################################################");
     init();
 
-    evaluation_performance(vm);
+    //evaluation_performance(vm);
     //evaluation_applicability(vm);
+    hookSystemLoadLibrary(vm);
 
     JNIEnv* env = NULL;
     if((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) == JNI_OK)

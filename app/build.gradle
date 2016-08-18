@@ -92,10 +92,10 @@ model {
                     // so the same file is used by compiler at host, also packed
                     // into APk to be used at Target (phone/tablet)
                     source {
-                        srcDirs = [ "${lib_distribution_root}/lib/libAndroidRuntime",
-                                    "${lib_distribution_root}/lib/libUtility",
-                                    "${lib_distribution_root}/lib/libHostSystem",
-                                    "${lib_distribution_root}/lib/libHooking" ]
+                        srcDirs = [ "${lib_distribution_root}/lib/art",
+                                    "${lib_distribution_root}/lib/utility",
+                                    "${lib_distribution_root}/lib/hostsystem",
+                                    "${lib_distribution_root}/lib/hooking" ]
                     }
                 }
             }
@@ -133,7 +133,7 @@ repositories {
 dependencies {
     println rootProject.getName()
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:24.1.1'
+    compile 'com.android.support:appcompat-v7:24.2.0'
     compile 'com.google.code.gson:gson:2.4'
     compile 'com.google.guava:guava:18.0'
 }
