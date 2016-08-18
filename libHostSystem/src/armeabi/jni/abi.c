@@ -20,6 +20,7 @@
 
 
 #include <sys/ucontext.h>
+#include <utility/util.h>
 #include "../../main/jni/abi.h"
 
 #include "../../main/jni/cpsr_util.h"

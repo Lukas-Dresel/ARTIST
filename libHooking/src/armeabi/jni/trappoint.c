@@ -403,6 +403,7 @@ static void find_trappoint_in_list_callback(int index, concurrent_persistent_lis
 
     if(arguments->predicate(trap, arguments->predicate_args))
     {
+        // this should not actually be necessary, since that is a stack structure, but it can't hurt
         __sync_bool_compare_and_swap(&arguments->found_match, NULL, trap);
     }
     return;
@@ -417,7 +418,7 @@ TrapPointInfo *trappoint_FindWithPredicate(TRAPPOINT_PREDICATE p, void *args)
     };
     concurrent_persistent_list_iterate(concurrent_persistent_list_installed_trappoints,
                                        find_trappoint_in_list_callback, &cur_search_args);
-    return NULL;
+    return cur_search_args.found_match;
 }
 
 #ifdef __cplusplus
