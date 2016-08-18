@@ -63,9 +63,11 @@ public class MainActivity extends Activity {
 
         String a = "artist";
         testtest(a, 10, a, a, 10);
-        System.out.println("Attempting to load library artist again.");
-        System.loadLibrary(a);
-        System.out.println("Reloaded library artist.");
+        for (int i = 0; i < 3; i++) {
+            System.out.println("Attempting to load library artist again.");
+            System.loadLibrary(a);
+            System.out.println("Reloaded library artist.");
+        }
 
 
 
