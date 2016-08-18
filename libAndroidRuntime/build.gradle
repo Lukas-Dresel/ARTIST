@@ -44,6 +44,17 @@ model {
                 }
             }
         }
+        buildTypes {
+            debug {
+                ndk.with {
+                    debuggable = true
+                }
+            }
+            release {
+                minifyEnabled = false
+                proguardFiles.add(file('proguard-rules.pro'))
+            }
+        }
     }
     repositories{
         libs(PrebuiltLibraries) {
@@ -70,8 +81,7 @@ model {
 // This is just copy out the header file and built lib into distribution
 // directory for clint application to use; it is a small overhead of this sample:
 //    both lib and app are put inside one project space [save maintenance time]
-task(distributeLib, type : Copy, dependsOn: [':libUtility:distributeLib',
-                                             ':libHostSystem:distributeLib']) {
+task distributeLib(type : Copy) {
     // trigger build library
     dependsOn assemble
     into '../distribution/'
@@ -84,3 +94,4 @@ task(distributeLib, type : Copy, dependsOn: [':libUtility:distributeLib',
         into 'lib/art'
     }
 }
+distributeLib.shouldRunAfter ':libUtility:distributeLib', ':libHostSystem:distributeLib'

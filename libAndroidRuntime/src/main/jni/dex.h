@@ -70,7 +70,7 @@ uint32_t dex_NumberOfClassDefs  ( const struct DexHeader* hdr );
 
 bool dex_FindClass(const struct DexHeader *hdr,
                    struct DexClass *result,
-                   char *mutf8_descriptor);
+                   const char *mutf8_descriptor);
 bool dex_GetClass(const struct DexHeader* hdr,
                   struct DexClass* result,
                   uint16_t index);

@@ -19,6 +19,17 @@ allprojects {
 }
 
 task clean(type: Delete) {
+    dependsOn ':libUtility:clean'
+    dependsOn ':libHostSystem:clean'
+    dependsOn ':libHooking:clean'
+    dependsOn ':libAndroidRuntime:clean'
     delete rootProject.buildDir
     delete 'distribution'
 }
+task buildLibs() {
+    dependsOn ':libUtility:distributeLib'
+    dependsOn ':libHooking:distributeLib'
+    dependsOn ':libAndroidRuntime:distributeLib'
+    dependsOn ':libHostSystem:distributeLib'
+}
+task build

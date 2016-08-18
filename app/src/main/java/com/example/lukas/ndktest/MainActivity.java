@@ -45,7 +45,7 @@ public class MainActivity extends Activity {
 
         this.mOutput = (TextView) this.findViewById(R.id.output);
 
-        this.testHookingThreadEntryPoints();
+        //this.testHookingThreadEntryPoints();
 
         try {
             BufferedReader reader = new BufferedReader(new FileReader("/proc/self/maps"));

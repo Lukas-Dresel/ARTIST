@@ -44,7 +44,7 @@ uint32_t dex_NumberOfClassDefs  ( const struct DexHeader* hdr )
     return hdr->class_defs_size_;
 }
 
-bool dex_FindClass(const struct DexHeader *hdr, struct DexClass *result, char *mutf8_descriptor)
+bool dex_FindClass(const struct DexHeader *hdr, struct DexClass *result, const char *mutf8_descriptor)
 {
     CHECK_RETURNFALSE(hdr != NULL);
     CHECK_RETURNFALSE(result != NULL);

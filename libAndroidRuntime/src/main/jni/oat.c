@@ -137,7 +137,7 @@ bool oat_FindClass(struct OatFile* oat, struct OatDexFile* result_oat_dex_file,
     return false;
 }
 bool oat_FindClassInDex(const struct OatDexFile *oat_dex_file, struct OatClass *clazz,
-                    char *descriptor)
+                    const char *descriptor)
 {
     CHECK_RETURNFALSE(oat_dex_file != NULL);
     CHECK_RETURNFALSE(clazz != NULL);

@@ -29,7 +29,7 @@
 
 static size_t whitespaceFreeStringLength(const char* str)
 {
-    CHECK_RETURNFALSE(str != NULL);
+    CHECK(str != NULL);
 
     size_t len = strlen(str);
     while (len > 0)
@@ -46,6 +46,17 @@ static size_t whitespaceFreeStringLength(const char* str)
                 return len;
         }
     }
+    return len;
+}
+static size_t newLineFreeStringLength(const char* str)
+{
+    CHECK(str != NULL);
+    size_t len = strlen(str);
+    while (len > 0 && (str[len - 1] == '\n'))
+    {
+        len -= 1;
+    }
+    return len;
 }
 
 bool FilePathByPathStringPredicate(struct MemoryMapView * view, struct FilePath* fp, const char* arg)
@@ -174,8 +185,9 @@ bool extractElfOatPointersFromFile(struct MemoryMappedFile *f, void **result_elf
     return false;
 }
 
-static struct FilePath* newFilePath(const char* path, size_t path_len)
+static struct FilePath* newFilePath(const char* path)
 {
+    unsigned int path_len = strlen(path);
     uint64_t path_hash = CityHash64(path, path_len);
 
     // the struct + the following string + null byte
@@ -193,12 +205,12 @@ static struct FilePath* newFilePath(const char* path, size_t path_len)
     return self;
 }
 
-static struct FilePath* addOrFindFilePath(struct MemoryMapView * view, const char* path, size_t path_len)
+static struct FilePath* addOrFindFilePath(struct MemoryMapView * view, const char* path)
 {
     CHECK_RETURNFALSE(view != NULL);
     CHECK_RETURNFALSE(path != NULL);
 
-    uint64_t path_hash = CityHash64(path, path_len);
+    uint64_t path_hash = CityHash64(path, strlen(path));
 
     // find hash in path list
     struct FilePath* current_path;
@@ -209,7 +221,7 @@ static struct FilePath* addOrFindFilePath(struct MemoryMapView * view, const cha
             return current_path;
         }
     }
-    struct FilePath* new_path = newFilePath(path, path_len);
+    struct FilePath* new_path = newFilePath(path);
     if(new_path == NULL)
     {
         return NULL;
@@ -326,7 +338,7 @@ static struct MemorySegment* newSegment(uint32_t start, uint32_t end, char* perm
     INIT_LIST_HEAD(&self->view_list_segments_entry);
     return self;
 }
-static bool insertNewSegment(struct MemoryMapView *view, const char *line, size_t line_len)
+static bool insertNewSegment(struct MemoryMapView *view, const char *line)
 {
     CHECK_RETURNFALSE(view != NULL);
     CHECK_RETURNFALSE(line != NULL);
@@ -348,9 +360,7 @@ static bool insertNewSegment(struct MemoryMapView *view, const char *line, size_
         return false;
     }
     const char *path = &line[path_start];
-    uint32_t path_len = line_len - path_start;
-
-    struct FilePath *file_path_element = addOrFindFilePath(view, path, path_len);
+    struct FilePath *file_path_element = addOrFindFilePath(view, path);
     if (file_path_element == NULL)
     {
         return false;
@@ -399,9 +409,9 @@ static bool populateMemoryMappedFileView(struct MemoryMapView * self)
 
     while (fgets(buff, sizeof(buff), fp) != NULL)
     {
-        uint32_t len = whitespaceFreeStringLength(buff);
-        buff[len] = 0; // clear trailing whitespace
-        if(!insertNewSegment(self, buff, len))
+        uint32_t actual_len = newLineFreeStringLength(buff);
+        buff[actual_len] = 0; // clear trailing newlines
+        if(!insertNewSegment(self, buff))
         {
             return false;
         }

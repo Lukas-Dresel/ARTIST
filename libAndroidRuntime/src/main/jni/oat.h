@@ -67,7 +67,7 @@ bool    oat_GetOatDexFile(struct OatFile* oat_file, struct OatDexFile* result, u
 bool    oat_FindClass(struct OatFile* oat, struct OatDexFile* result_oat_dex_file,
                    struct OatClass *result_clazz, char *descriptor);
 bool    oat_FindClassInDex(const struct OatDexFile *oat_dex_file, struct OatClass *clazz,
-                           char *descriptor);
+                           const char *descriptor);
 bool    oat_GetClass(const struct OatDexFile* oat_dex_file, struct OatClass* clazz, uint16_t class_def_index);
 
 bool    oat_FindDirectMethod(const struct OatClass * oat_class, struct OatMethod* result, const char* descriptor, const char* signature);

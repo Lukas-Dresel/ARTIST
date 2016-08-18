@@ -59,6 +59,11 @@ static bool setupBootOat(struct OatFile *oat_file)
     struct MemoryMappedFile *boot_oat = findFileByPath(view, "/data/dalvik-cache/arm/system@framework@boot.oat");
     if (boot_oat == NULL)
     {
+        struct MemoryMappedFile * currentFile;
+        list_for_each_entry(currentFile, &view->list_files, view_list_files_entry)
+        {
+            logFileContents(currentFile);
+        }
         LOGD("Unable to find file \"/data/dalvik-cache/arm/system@framework@boot.oat\"");
         DestroyMemoryMapView(view);
         return false;
@@ -206,7 +211,7 @@ static bool hookSystemLoadLibrary(JavaVM* javaVM)
         LOGE("Could not install loadLibrary invocation_hook");
         return false;
     }
-    LOGI("Successfully hooked java.lang.System.loadLibrary(String).");
+    LOGI("Successfully hooked java.lang.System.loadLibrary(String) at "PRINT_PTR, (uintptr_t)impl);
     return true;
 }
 static bool hookFunction(const char* class_name, const char* method_name, const char* proto,
@@ -421,6 +426,8 @@ jint JNICALL JNI_OnLoad(JavaVM *vm, __unused void *reserved)
     LOGW("Loading library ndktest ...");
     LOGW("#####################################################################");
     init();
+
+    dump_process_memory_map();
 
     //evaluation_performance(vm);
     //evaluation_applicability(vm);
@@ -932,8 +939,8 @@ Java_com_example_lukas_ndktest_MainActivity_dumpLibArtInterpretedFunctionsInNonA
                 return;
             }
             if( (clazz.oat_class_data.class_type == kOatClassAllCompiled) ||
-                (clazz.dex_class.class_def->access_flags_ & kAccAbstract != 0) ||
-                (clazz.dex_class.class_def->access_flags_ & kAccInterface != 0) )
+                ((clazz.dex_class.class_def->access_flags_ & kAccAbstract) != 0) ||
+                ((clazz.dex_class.class_def->access_flags_ & kAccInterface) != 0) )
             {
                 continue;
             }

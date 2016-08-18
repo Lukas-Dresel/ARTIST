@@ -46,7 +46,7 @@ model {
             }
             HostSystem {
                 // Inform Android Studio where the header file dir for this lib is
-                headers.srcDir "${lib_distribution_root}/libHostSystem/include/"
+                headers.srcDir "${lib_distribution_root}/include/"
 
                 binaries.withType(SharedLibraryBinary) {
                     sharedLibraryFile = file("${lib_distribution_root}/lib/hostsystem/${targetPlatform.getName()}/libHostSystem.so")
@@ -67,10 +67,10 @@ model {
         }
         ndk {
             moduleName = 'artist'
-            toolchain = 'clang'
             CFlags.addAll(["-Wno-pointer-to-int-cast", "-Wno-int-to-pointer-cast"])
-            ldLibs.addAll(["log", "dl", 'android'])
+            CFlags.add('--std=gnu99')
             cppFlags.add("-fpermissive")
+            ldLibs.addAll(["log", "dl", 'android'])
         }
         sources {
             main {
@@ -138,12 +138,4 @@ dependencies {
     compile 'com.google.guava:guava:18.0'
 }
 
-
-tasks.whenTaskAdded { task ->
-    if (task.name.contains('compile')) {
-        task.dependsOn ':libAndroidRuntime:distributeLib'
-        task.dependsOn ':libHooking:distributeLib'
-        task.dependsOn ':libHostSystem:distributeLib'
-        task.dependsOn ':libUtility:distributeLib'
-    }
-}
+build.dependsOn ':buildLibs'
