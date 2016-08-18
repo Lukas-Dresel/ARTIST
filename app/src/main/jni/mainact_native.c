@@ -59,12 +59,12 @@ static bool setupBootOat(struct OatFile *oat_file)
     struct MemoryMappedFile *boot_oat = findFileByPath(view, "/data/dalvik-cache/arm/system@framework@boot.oat");
     if (boot_oat == NULL)
     {
+        LOGD("Unable to find file \"/data/dalvik-cache/arm/system@framework@boot.oat\"");
         struct MemoryMappedFile * currentFile;
         list_for_each_entry(currentFile, &view->list_files, view_list_files_entry)
         {
             logFileContents(currentFile);
         }
-        LOGD("Unable to find file \"/data/dalvik-cache/arm/system@framework@boot.oat\"");
         DestroyMemoryMapView(view);
         return false;
     }
@@ -74,6 +74,12 @@ static bool setupBootOat(struct OatFile *oat_file)
     if (!extractElfOatPointersFromFile(boot_oat, &elf_start, &elf_oat_start, &elf_oat_end))
     {
         LOGD("boot.oat doesn't appear to be an Oat file ... ???");
+        struct MemoryMappedFile * currentFile;
+        list_for_each_entry(currentFile, &view->list_files, view_list_files_entry)
+        {
+            logFileContents(currentFile);
+        }
+
         DestroyMemoryMapView(view);
         return false;
     }
@@ -211,6 +217,7 @@ static bool hookSystemLoadLibrary(JavaVM* javaVM)
         LOGE("Could not install loadLibrary invocation_hook");
         return false;
     }
+    dump_installed_trappoints_info();
     LOGI("Successfully hooked java.lang.System.loadLibrary(String) at "PRINT_PTR, (uintptr_t)impl);
     return true;
 }

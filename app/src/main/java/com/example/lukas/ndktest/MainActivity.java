@@ -47,7 +47,7 @@ public class MainActivity extends Activity {
 
         //this.testHookingThreadEntryPoints();
 
-        try {
+        /*try {
             BufferedReader reader = new BufferedReader(new FileReader("/proc/self/maps"));
             String line;
             while ((line = reader.readLine()) != null)
@@ -58,12 +58,15 @@ public class MainActivity extends Activity {
         catch (IOException ex)
         {
 
-        }
+        }*/
 
 
         String a = "artist";
         testtest(a, 10, a, a, 10);
+        System.out.println("Attempting to load library artist again.");
         System.loadLibrary(a);
+        System.out.println("Reloaded library artist.");
+
 
 
         /*try

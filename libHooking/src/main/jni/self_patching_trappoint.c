@@ -155,6 +155,7 @@ void* SelfPatchingTrappoint_Install(void *address, uint32_t trap_method,
     {
         void *entry_trappoint = trappoint_Install(address, trap_method, primary_handler,
                                                   (void *) new_self);
+        LOGI("Installed trappoint at starting address: "PRINT_PTR, address);
         if (entry_trappoint != NULL)
         {
             new_self->PostTrigger_Handler = PostTrigger_Handler;
