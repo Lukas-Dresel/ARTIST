@@ -200,7 +200,7 @@ static struct FilePath* newFilePath(const char* path)
     }
     self->path_hash = path_hash;
     // Copy over the path together with the null byte
-    strncpy(&self->path[0], path, path_len);
+    strncpy(&self->path[0], path, path_len + 1);
     INIT_LIST_HEAD(&self->view_list_filepaths_entry);
     return self;
 }
