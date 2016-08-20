@@ -24,7 +24,6 @@
 #include <utility/memory.h>
 #include <utility/error.h>
 #include <utility/logging.h>
-#include <hostsystem/abi.h>
 #include "trappoint_interface.h"
 
 /*

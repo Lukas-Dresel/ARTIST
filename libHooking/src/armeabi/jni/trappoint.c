@@ -144,11 +144,9 @@ static bool signal_handler_invoke_trappoint_handler(int signal, siginfo_t *sigIn
     return true;
 }
 void sigill_handler(int signal, siginfo_t *sigInfo, ucontext_t *context) {
-    LOGD("Inside the SIGILL handler..., s\n"
-                 "static voiignal %d, siginfo_t "
-                 PRINT_PTR
-                 ", context "
-                 PRINT_PTR, signal, (uintptr_t) sigInfo, (uintptr_t) context);
+    LOGD("Inside the SIGILL handler..., signal %d, siginfo_t "PRINT_PTR", context "PRINT_PTR,
+         signal, (uintptr_t) sigInfo, (uintptr_t) context);
+
     if (!signal_handler_invoke_trappoint_handler(signal, sigInfo, context,
                                                  sigill_handler_trappoint_predicate)) {
         // Could not find any trappoints for our desired address
@@ -157,14 +155,13 @@ void sigill_handler(int signal, siginfo_t *sigInfo, ucontext_t *context) {
         sigaction(SIGILL, &old_sigill_action, NULL);
         return;
     }
+
     LOGD("Returning from SIGILL-Handler.");
 }
 static void sigtrap_handler(int signal, siginfo_t *sigInfo, ucontext_t *context) {
 
-    LOGD("Inside the SIGTRAP handler..., signal %d, siginfo_t "
-                 PRINT_PTR
-                 ", context "
-                 PRINT_PTR, signal, (uintptr_t) sigInfo, (uintptr_t) context);
+    LOGD("Inside the SIGTRAP handler..., signal %d, siginfo_t "PRINT_PTR", context "PRINT_PTR,
+         signal, (uintptr_t) sigInfo, (uintptr_t) context);
 
     if (!signal_handler_invoke_trappoint_handler(signal, sigInfo, context,
                                                  sigtrap_handler_trappoint_predicate)) {
